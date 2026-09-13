@@ -8,7 +8,7 @@
 
 bool wifi_pmf_warning(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_WARN, T_BG);
     d.setCursor(4, BODY_Y + 4); d.print("PMF / 802.11w warning");

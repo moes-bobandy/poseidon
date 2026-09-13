@@ -310,7 +310,7 @@ void feat_surveillance_hunter(void)
     s_running = true;
     xTaskCreate(hop_task, "surv_hop", 3072, nullptr, 4, nullptr);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_draw_footer("ESC=stop  any other key=ignored");
 

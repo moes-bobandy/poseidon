@@ -110,7 +110,7 @@ void wdr_matrix_begin(void)
     mxr_note_shown = false;
     /* Clear ONCE here — the only full-screen wipe. Every frame after this
      * only touches the regions that change, so there is no per-frame flash. */
-    M5Cardputer.Display.fillScreen(T_BG);
+    PoseidonDisplay.fillScreen(T_BG);
 }
 
 void wdr_matrix_feed(const char *ssid, uint8_t auth, int8_t rssi, uint8_t channel)
@@ -153,7 +153,7 @@ static void mx_dispatch(uint32_t now)
 
 static void mx_draw_banner(uint32_t now)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int by = 46, bh = 36;
     d.fillRect(0, by, MXW, bh, T_BG);
     bool blink = (now / 120) & 1;
@@ -171,7 +171,7 @@ static void mx_draw_banner(uint32_t now)
 
 void wdr_matrix_render(uint8_t chan, int ap_count, bool gps_valid, uint8_t sats)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t now = millis();
     d.setTextSize(1);
 

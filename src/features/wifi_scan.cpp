@@ -101,7 +101,7 @@ static void draw_list_header(void)
 /* Paint one AP row in full over its own background (no body clear). */
 static void draw_ap_row(int r, const int *idx, int first, int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int ai = idx[first + r];
     const ap_t &a = s_aps[ai];
     int y = BODY_Y + 14 + r * 11;
@@ -146,7 +146,7 @@ static void draw_list(int cursor)
     int idx[MAX_APS];
     int n = build_filtered(idx);
     if (n == 0) {
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         d.setTextColor(T_DIM, T_BG);
         d.setCursor(4, BODY_Y + 18);
         d.print(s_scan_running ? "scanning..." : "no matches");
@@ -179,7 +179,7 @@ extern void feat_wifi_clients(void);
 void wifi_show_ap_details(const ap_t &a)
 {
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);  d.print("AP DETAILS");
     if (a.is_5g) {
@@ -266,7 +266,7 @@ static void ensure_scan_evt(void) {
 /* Static chrome, drawn once before the sweep starts. */
 static void scan_screen_static(void) {
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextSize(2);
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(110, BODY_Y + 14); d.print("SCANNING");
@@ -279,7 +279,7 @@ static void scan_screen_static(void) {
 /* One animation frame: clear + redraw the radar (so the sweep doesn't smear),
  * plot a contact per AP found so far, and refresh the live counters. */
 static void scan_screen_frame(int pass, int found, uint32_t elapsed) {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillRect(RADAR_CX - RADAR_R - 2, RADAR_CY - RADAR_R - 2,
                (RADAR_R + 2) * 2, (RADAR_R + 2) * 2, T_BG);
     ui_radar(RADAR_CX, RADAR_CY, RADAR_R, T_ACCENT2);
@@ -541,7 +541,7 @@ void feat_wifi_scan(void)
 
         if (state_changed) {
             ui_draw_status(radio_name(), s_scan_running ? "..." : "done");
-            auto &d = M5Cardputer.Display;
+            auto &d = PoseidonDisplay;
             /* last_count == -1 is the "force full rebuild" sentinel set by
              * the filter/help key handlers — body changed wholesale. */
             if (last_count < 0) {

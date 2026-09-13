@@ -18,7 +18,7 @@
 
 static lora_band_t pick_band(const char *title)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int sel = LORA_BAND_915;
     while (true) {
         ui_clear_body();
@@ -91,7 +91,7 @@ void feat_lora_scan(void)
     float last_snr = 0;
     char last_hex[97] = "(waiting)";
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Static chrome once — only the live fields repaint per tick (via
      * ui_text_w in-place overwrite) so the body never blanks. */
@@ -170,7 +170,7 @@ void feat_lora_beacon(void)
     uint32_t last_tx = 0;
     int last_st = 0;
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t last_draw = 0;
 
     /* Static chrome once — freq + power don't change this session. */
@@ -248,7 +248,7 @@ void feat_lora_meshtastic(void)
     int last_rssi = 0;
     float last_snr = 0;
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t last_draw = 0;
     while (true) {
         if (s_lora_rx_flag) {
@@ -325,7 +325,7 @@ void feat_gps_fix(void)
      * obviously wants GPS, so we begin + spawn the poller here and
      * persist the user_enabled flag in NVS for future cold-boots. */
     gps_ensure_running();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t last_draw = 0;
 
     /* Static chrome once; live fields repaint in place via ui_text_w so

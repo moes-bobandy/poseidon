@@ -4,7 +4,7 @@
  * Source bitmaps live in menu_icons_data.h, generated from
  * assets/icons.jpg by scripts/convert_icons.py. The dispatcher here
  * maps top-level POSEIDON menu hotkeys to their bitmap and renders via
- * M5Cardputer.Display.drawBitmap (1-bit, "1" pixels in `color`,
+ * PoseidonDisplay.drawBitmap (1-bit, "1" pixels in `color`,
  * "0" pixels transparent so the badge fill shows through).
  *
  * Submenu items return false from the dispatcher and the carousel

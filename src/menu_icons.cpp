@@ -12,6 +12,7 @@
 #include "menu_icons.h"
 #include "menu_icons_data.h"
 #include <M5Cardputer.h>
+#include "display/poseidon_display.h"
 
 extern const menu_node_t MENU_ROOT;
 
@@ -21,7 +22,7 @@ bool draw_menu_icon(int cx, int cy, uint16_t color,
     if (parent != &MENU_ROOT) return false;
     if (!item) return false;
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* drawBitmap origin is top-left; we want the icon centered on
      * (cx, cy) — offset by half the bitmap dimensions. */
     int x = cx - (MENU_ICON_W / 2);

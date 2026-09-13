@@ -79,7 +79,7 @@ static bool ms_start_stop(uint8_t power_condition, bool start, bool load_eject)
 
 static bool ms_confirm(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_force_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("MASS STORAGE");
@@ -139,7 +139,7 @@ void feat_mass_storage(void)
     USB.begin();
 
     /* ---- live status screen ---- */
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_force_clear_body();
     ui_status_invalidate();
     d.setTextColor(T_GOOD, T_BG);

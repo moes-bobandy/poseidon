@@ -2,7 +2,7 @@
  * ui_subghz — shared visual widgets for SubGHz features.
  *
  * Goal: make every SubGHz screen look like a piece of RF lab kit.
- * All widgets draw to M5Cardputer.Display directly; caller is
+ * All widgets draw to PoseidonDisplay directly; caller is
  * responsible for any framing / titles outside the widget bounds.
  */
 #pragma once

@@ -84,7 +84,7 @@ void feat_net_ssdp(void)
     udp.begin(1900);
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("SSDP / UPnP");
     d.drawFastHLine(4, BODY_Y + 12, 90, T_ACCENT);

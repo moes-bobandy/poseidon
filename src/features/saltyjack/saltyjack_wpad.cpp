@@ -377,7 +377,7 @@ void feat_saltyjack_wpad(void)
 {
     radio_switch(RADIO_WIFI);
     if (WiFi.status() != WL_CONNECTED) {
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         sj_frame("WPAD / 407 NTLM");
         d.setTextColor(SJ_BAD, SJ_BG);
         d.setCursor(SJ_CONTENT_X, BODY_Y + 24); d.print("Not connected.");
@@ -392,7 +392,7 @@ void feat_saltyjack_wpad(void)
     s_wpad_gets = s_407_sent = s_type1_seen = s_hash_count = 0;
     s_last_user[0] = s_last_domain[0] = s_last_client[0] = '\0';
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     sj_frame("WPAD / 407 NTLM");
 
     d.setTextColor(SJ_FG_DIM, SJ_BG);

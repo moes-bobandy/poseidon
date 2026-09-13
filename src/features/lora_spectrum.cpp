@@ -41,7 +41,7 @@ static int   s_pkt_count = 0;
 
 static uint16_t rssi_color(int rssi)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int n = rssi + 130;
     if (n < 0) n = 0; if (n > 80) n = 80;
     int p = (n * 255) / 80;
@@ -89,7 +89,7 @@ static bool poll_packet(SX1262 &radio)
 
 static void draw_packet_overlay(int x, int y)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (s_pkt_count == 0) {
         d.setTextColor(T_DIM, T_BG);
         d.setCursor(x, y); d.print("no packets yet");
@@ -114,7 +114,7 @@ static void draw_packet_overlay(int x, int y)
 
 static void run_bars(SX1262 &radio, const lora_range_t &range)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int GX = 24, GY = BODY_Y + 14, GW = 140, GH = BODY_H - 34;
     int8_t hist[140]; memset(hist, -130, sizeof(hist));
     int8_t peak[140]; memset(peak, -130, sizeof(peak));
@@ -193,7 +193,7 @@ static void run_bars(SX1262 &radio, const lora_range_t &range)
  * radio + antenna switch don't sit hot in a degraded state). */
 static bool run_waterfall(SX1262 &radio, const lora_range_t &range)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int GX = 4, GY = BODY_Y + 14, GW = WF_COLS, GH = WF_ROWS;
 
     uint16_t *ring = (uint16_t *)malloc(GH * GW * sizeof(uint16_t));
@@ -244,7 +244,7 @@ static bool run_waterfall(SX1262 &radio, const lora_range_t &range)
 
 static void run_scope(SX1262 &radio, float freq)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int GX = 24, GY = BODY_Y + 18, GW = SCR_W - 30, GH = BODY_H - 46;
 
     /* Retune only once per frequency change. */
@@ -337,7 +337,7 @@ void feat_lora_spectrum(void)
     /* Arm RX so poll_packet / read_rssi have live data. */
     lora_radio().startReceive();
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int mode = 0, range = 2;
     const char *modes[] = { "Bar Meter", "Waterfall", "Oscilloscope" };
     const char *descs[] = {

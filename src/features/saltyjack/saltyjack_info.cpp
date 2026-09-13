@@ -13,7 +13,7 @@
 
 void feat_saltyjack_info(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     sj_frame("SaltyJack");
 
     d.setTextColor(SJ_FG, SJ_BG);

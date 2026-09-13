@@ -12,7 +12,7 @@
  * State invariants:
  *   - All per-frame state derives from millis() and esp_random(); no
  *     module-scope mutable state except the cached NVS flag.
- *   - Functions write directly to M5Cardputer.Display (no sprite buffer,
+ *   - Functions write directly to PoseidonDisplay (no sprite buffer,
  *     no PSRAM — this unit's PSRAM is broken).
  *   - Functions are NOT marked IRAM_ATTR — IRAM is full.
  */
@@ -61,7 +61,7 @@ void ui_ambient_enabled_set(bool on)
 /* ---- POSEIDON: combined cyberpunk cyberscape ---- */
 static void amb_poseidon(int x, int y, int w, int h)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t now = millis();
 
     /* Layer 1: TRON grid scrolling diagonally. */

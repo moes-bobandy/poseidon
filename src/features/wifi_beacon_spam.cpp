@@ -121,7 +121,7 @@ static void pick_list(void)
 {
     /* Tiny sub-menu: M=meme, R=rickroll, C=custom. */
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);   d.print("BEACON SPAM");
     d.drawFastHLine(4, BODY_Y + 12, 120, T_ACCENT);
@@ -183,7 +183,7 @@ void feat_wifi_beacon_spam(void)
 
     ui_clear_body();
     ui_draw_footer("`=stop");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("BEACON SPAM ACTIVE");
     d.drawFastHLine(4, BODY_Y + 12, 180, T_BAD);

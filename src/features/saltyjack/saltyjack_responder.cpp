@@ -539,7 +539,7 @@ void feat_saltyjack_responder(void)
 {
     radio_switch(RADIO_WIFI);
     if (WiFi.status() != WL_CONNECTED) {
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         sj_frame("RESPONDER");
         d.setTextColor(SJ_BAD, SJ_BG);
         d.setCursor(SJ_CONTENT_X, BODY_Y + 24); d.print("Not connected.");
@@ -569,7 +569,7 @@ void feat_saltyjack_responder(void)
         return;
     }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     sj_frame("RESPONDER");
 
     /* IP line, info-style */

@@ -23,7 +23,7 @@ void feat_mesh(void)
         uint32_t now = millis();
         if (now - last > 500) {
             last = now;
-            auto &d = M5Cardputer.Display;
+            auto &d = PoseidonDisplay;
             ui_draw_status(radio_name(), "mesh");
             ui_clear_body();
             d.setTextColor(T_ACCENT, T_BG);

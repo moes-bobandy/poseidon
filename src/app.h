@@ -5,8 +5,9 @@
 
 #include <Arduino.h>
 #include <M5Cardputer.h>
+#include "display/poseidon_display.h"
 
-/* ---- palette (16-bit 565, via M5Cardputer.Display) ---- */
+/* ---- palette (16-bit 565, via PoseidonDisplay) ---- */
 #define COL_BG       0x0000  /* black */
 #define COL_FG       0xFFFF  /* white */
 #define COL_ACCENT   0x07FF  /* cyan */
@@ -16,7 +17,10 @@
 #define COL_DIM      0x7BEF  /* grey */
 #define COL_MAGENTA  0xF81F
 
-/* ---- display geometry ---- */
+/* ---- display geometry ----
+ * Phase-1 dual-screen keeps 240x135 UI layout on the external
+ * ILI9341 (top-left). Full 320x240 redesign is later.
+ */
 #define SCR_W 240
 #define SCR_H 135
 #define STATUS_H 12

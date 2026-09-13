@@ -128,7 +128,7 @@ void feat_ir_learn(void) {
     ui_clear_body();
     ui_draw_status("IR", "learn");
     ui_draw_footer("SPACE=capture  R=replay  S=save  `=back");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("IR LEARN");
     d.setTextColor(T_DIM, T_BG);

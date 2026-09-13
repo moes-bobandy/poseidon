@@ -44,7 +44,7 @@ static volatile uint32_t s_modified = 0;   /* packets we altered */
 
 static bool ensure_feather(void) {
     if (NRF52Hardware::is_up()) return true;
-    ui_clear_body(); auto &d = M5Cardputer.Display;
+    ui_clear_body(); auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG); d.setCursor(4, BODY_Y+10);
     d.print("Connecting to Feather...");
     ui_spinner(SCR_W-16, BODY_Y+14, T_ACCENT);
@@ -128,7 +128,7 @@ static bool select_target(void) {
     radio_switch(RADIO_BLE);
     nrf52_led_set(NRF52_LED_BLE_SCAN);
     ui_clear_body(); ui_draw_status("MITM", "scanning");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG); d.setCursor(4, BODY_Y+2);
     d.print("MITM: Scanning targets...");
     /* getResults() blocks ~10s in one call and cannot animate; a persistent
@@ -185,7 +185,7 @@ static void relay_phase(void) {
     nrf52_led_set(NRF52_LED_MITM);
     sfx_glitch();
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     char mac_str[20];
     snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
              tgt.addr[0], tgt.addr[1], tgt.addr[2], tgt.addr[3], tgt.addr[4], tgt.addr[5]);

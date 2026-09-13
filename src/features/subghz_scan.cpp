@@ -146,7 +146,7 @@ void feat_subghz_scan(void)
     s_isr_edges = 0;
     attachInterrupt(digitalPinToInterrupt(CC1101_GDO0), gdo0_isr, CHANGE);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     float freq = 433.92f;
     uint32_t captures = 0;
     bool has_capture = false;

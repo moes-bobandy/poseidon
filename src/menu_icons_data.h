@@ -3,7 +3,7 @@
  * Regenerate: python scripts/convert_icons.py
  *
  * 14 icons, 24x24 1-bit, MSB-first row packing.
- * Render via M5Cardputer.Display.drawBitmap(x, y, ICON_*, ICON_W, ICON_H, color).
+ * Render via PoseidonDisplay.drawBitmap(x, y, ICON_*, ICON_W, ICON_H, color).
  */
 #pragma once
 

@@ -94,22 +94,35 @@ void setup()
      * the probe and the Adv branch is taken correctly. We also park
      * G5 HIGH afterwards so the chip stays NSS-deselected on the
      * shared SPI bus (same bus as SD). The feature module will drive
-     * G3 HIGH when LoRa is actually opened. */
+     * G3 HIGH when LoRa is actually opened.
+     *
+     * Dual-screen Adv claims G3=RST, G5=CS, G6=DC for the external
+     * ILI9341 — skip the LoRa RST-low park and G5 pull-up when
+     * POSEIDON_DUAL_SCREEN is built in. Cap LoRa / Hydra cannot share
+     * those pins with the panel on stock PorkChop wiring. */
+#if !POSEIDON_DUAL_SCREEN
     pinMode(3, OUTPUT);
     digitalWrite(3, LOW);
     delay(5);
+#endif
 
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
     /* Safety belt: force the I2C (TCA8418) keyboard reader even if
      * autodetect picked K126, so the driver never grabs G3-G7. */
     M5Cardputer.Keyboard.begin(std::make_unique<TCA8418KeyboardReader>());
+#if !POSEIDON_DUAL_SCREEN
     /* Release pin 5 — LoRa hat uses it as NSS (needs HIGH to deselect),
      * Hydra hat uses it as CC1101 GDO0 (input). Since we don't know
      * which hat is attached, set INPUT_PULLUP which safely deselects
      * LoRa NSS (pulled high) and won't fight CC1101 GDO0 (input). */
     pinMode(5, INPUT_PULLUP);
-    M5Cardputer.Display.setRotation(1);  /* landscape, keyboard at the bottom */
+#endif
+    /* Internal ST7789 landscape (also used as dual-screen status stub). */
+    M5Cardputer.Display.setRotation(1);
+#if !POSEIDON_DUAL_SCREEN
+    PoseidonDisplay.setRotation(1);  /* landscape, keyboard at the bottom */
+#endif
     Serial.begin(115200);
     hb_install_esp_query();
     heap_census();
@@ -126,9 +139,25 @@ void setup()
                   board == m5::board_t::board_M5Cardputer    ? "Cardputer K126" :
                                                                "UNKNOWN");
 
+#if POSEIDON_DUAL_SCREEN
+    /* External ILI9341 on SPI3 before SD (same SCK/MOSI). Init order
+     * matches Dirt's working Adv dual-screen: color depth + begin +
+     * rotation + boot RGB565, then SD, then lcd_resume_after_bus. */
+    if (!poseidon_dual_begin()) {
+        Serial.println("[POSEIDON] dual-screen panel absent — UI on internal");
+    }
+#endif
+
     /* Mount SD on boot if a card is present. Non-fatal if absent. */
     if (sd_mount()) Serial.println("[POSEIDON] sd mounted");
     else            Serial.println("[POSEIDON] sd absent");
+#if POSEIDON_DUAL_SCREEN
+    poseidon_lcd_resume_after_bus();
+    if (poseidon_dual_ok()) {
+        poseidon_dual_status_stub(sd_is_mounted() ? "SD ok" : "SD absent",
+                                  "UI on EXT ILI9341");
+    }
+#endif
 
     /* Load persisted sound settings + set speaker volume. */
     sfx_init();

@@ -51,7 +51,7 @@ void ui_draw_pulse_wave(int x, int y, int w, int h,
                         const int16_t *pulses, int n_pulses,
                         int playhead_idx)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Body + midline. */
     d.fillRect(x, y, w, h, T_BG);
     int mid = y + h / 2;
@@ -126,7 +126,7 @@ void ui_draw_pulse_wave(int x, int y, int w, int h,
 
 void ui_draw_freq_band(int x, int y, int w, int h, float freq_mhz)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillRect(x, y, w, h + 10, T_BG);
 
     const float min_f = 280.0f;
@@ -196,7 +196,7 @@ void ui_rssi_scope_reset(void)
 void ui_draw_rssi_scope(int x, int y, int w, int h, int rssi_dbm)
 {
     if (w > SCOPE_MAX_W) w = SCOPE_MAX_W;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Push newest sample. */
     if (rssi_dbm < -100) rssi_dbm = -100;
@@ -248,7 +248,7 @@ void ui_subghz_live_tx_splash(float freq_mhz,
                               uint32_t payload_hex,
                               uint32_t duration_ms)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int cx = SCR_W / 2;
     int cy = SCR_H / 2;
     uint32_t start = millis();

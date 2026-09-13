@@ -187,7 +187,7 @@ static const char *client_device_type(const cli_t &c, const char *vendor)
  * frames, age, AP. D=deauth. ESC=back; re-arms promisc on exit. */
 static void client_detail(int idx)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     bool redraw = true;
     uint32_t last = 0;
     while (true) {
@@ -279,7 +279,7 @@ static void client_detail(int idx)
  * overwrites it. The CLIENTS header count is repainted on the data path. */
 static void draw_client_chrome(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_force_clear_body();
     d.drawFastHLine(4, BODY_Y + 12, SCR_W - 8, T_ACCENT);
     d.setTextColor(T_DIM, T_BG);
@@ -292,7 +292,7 @@ static void draw_client_chrome(void)
  * top. Used by both the cursor-move and window-scroll redraw paths. */
 static void draw_client_row(int r, int first, int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const cli_t &c = s_clients[first + r];
     int y = BODY_Y + 28 + r * 11;
     bool sel = (first + r == cursor);
@@ -398,7 +398,7 @@ void feat_wifi_clients(void)
         bool changed = count_changed || cursor_changed || first_changed;
         if (changed || millis() - last > 1000) {
             last = millis();
-            auto &d = M5Cardputer.Display;
+            auto &d = PoseidonDisplay;
           if (changed) {
             if (count_changed) {
                 ui_text_w(4, BODY_Y + 2, SCR_W - 8, T_ACCENT,

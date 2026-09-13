@@ -94,7 +94,7 @@ static uint16_t pulse_color_now(void)
  * cursor change, on slide animation frames, and on initial entry. */
 static void draw_card_full(const menu_node_t *parent, int cursor, int slide_x)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int n = count_children(parent);
     if (n <= 0 || cursor < 0 || cursor >= n) return;
     const menu_node_t *item = &parent->children[cursor];
@@ -238,7 +238,7 @@ static void draw_card_full(const menu_node_t *parent, int cursor, int slide_x)
  */
 static void draw_card_anim(const menu_node_t *parent, int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int n = count_children(parent);
     if (n <= 0 || cursor < 0 || cursor >= n) return;
 

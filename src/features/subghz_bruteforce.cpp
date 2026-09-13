@@ -34,7 +34,7 @@ static const brute_proto_t PROTOS[] = {
 
 void feat_subghz_bruteforce(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int sel = 0;
 
     /* Static chrome once; rows repaint per-row only when the cursor

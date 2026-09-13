@@ -125,7 +125,12 @@ The C5 isn't in M5Burner's chip list, so it flashes with the Espressif **esptool
 # Cardputer (ESP32-S3) — PlatformIO
 git clone https://github.com/GeneralDussDuss/poseidon.git
 cd poseidon
-pio run -t upload
+pio run -e cardputer -t upload
+
+# Dual-screen Cardputer Adv (external ILI9341 primary UI)
+pio run -e cardputer-dual -t upload
+# Launcher guest bin:
+pio run -e cardputer-dual-launcher
 ```
 
 The TRIDENT C5 firmware builds with **ESP-IDF** (`idf.py build flash`) — see the `trident/` directory for its README.
@@ -218,6 +223,34 @@ Plus a procedural ambient motion layer (`ui_ambient_tick`) painted behind every 
 | IR | transmit-only LED |
 | USB | native USB-C (HID + CDC) |
 | Storage | microSD |
+
+### Dual-screen Cardputer Adv
+
+Optional **external ILI9341** (PorkChop-style 2.8") as the **primary UI** surface; the built-in ST7789 shows a status stub only. Phase 1 keeps the existing 240×135 UI layout (top-left on the 320×240 panel).
+
+| Signal | GPIO | Notes |
+|---|---|---|
+| SCK / CLK | 40 | Shared with SD (SPI3 / HSPI) |
+| MOSI / SDI | 14 | Shared with SD |
+| CS | 5 | Panel chip-select |
+| DC / RS | 6 | |
+| RST | 3 | |
+| SD_CS | 12 | Keep HIGH when talking to the panel |
+| MISO | — | Panel bus unused (`-1`); SD uses 39 |
+
+**Build / flash**
+
+```bash
+pio run -e cardputer-dual -t upload
+# or guest slot for bmorcelli Launcher:
+pio run -e cardputer-dual-launcher
+```
+
+**Shared-bus rules (do not skip):** boot-only RGB565 / COLMOD `0x55` (never mid-run `setColorDepth` / `0x3A`); before SD I/O idle → quiesce → I/O → resume (CS high). See `src/display/LGFX_ILI9341.h` and `src/display/poseidon_display.*`.
+
+**Hat conflict:** Cap LoRa1262 (NSS=G5, BUSY=G6, RST=G3) and Hydra (G5 GDO0) **cannot** be attached at the same time as the dual-screen panel on this wiring. The `cardputer-dual` build skips the LoRa RST-low park on G3.
+
+CYD dual-screen is out of scope for this phase.
 
 ### Supported Hats (one at a time)
 

@@ -51,7 +51,7 @@ static bool c5_present(void)
      * indicator so the screen never looks frozen during the wait, and let ESC
      * bail out early instead of dead-waiting the whole window. */
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);  d.print("C5 SATELLITE");
     d.drawFastHLine(4, BODY_Y + 12, 96, T_ACCENT);
@@ -79,7 +79,7 @@ void c5_deauth_dashboard(const ap_t &a, bool broadcast)
     radio_switch(RADIO_WIFI);
     if (!c5_present()) { ui_toast("no C5 online", T_BAD, 1200); return; }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const uint16_t BURST_MS = 60000;   /* long bursts; re-armed in loop */
     uint8_t target[6];
     if (broadcast) memset(target, 0xFF, 6);
@@ -201,7 +201,7 @@ static void draw_status_header(void)
      * when transitioning to a new C5 screen. */
     static int     last_n = -1;
     static uint16_t last_col = 0;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int n = c5_peer_count();
     uint16_t col = n > 0 ? T_GOOD : T_BAD;
     if (n == last_n && col == last_col) return;
@@ -224,7 +224,7 @@ void feat_c5_status(void)
     c5_begin();
     Serial.println("[c5_status] c5_begin OK");
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_status_invalidate();
     ui_draw_footer("P=ping  S=stop  `=back");
@@ -306,7 +306,7 @@ void feat_c5_scan_5g(void)
     c5_clear_results();
     c5_cmd_scan_5g(300);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();  /* one-time entry clear */
     ui_draw_footer(";/. move  ENTER=info  R=rescan  `=back");
     int cursor = 0;
@@ -447,7 +447,7 @@ void feat_c5_scan_5g(void)
  * the count. Shows a radar while waiting; ESC aborts the wait. */
 static int c5_collect_5g(c5_ap_t *out, int max)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     c5_ap_t all[64];
     int n = c5_aps(all, 64);
     int f = 0;
@@ -498,7 +498,7 @@ void feat_c5_deauth_5g(void)
 
     /* Cursor select target. */
     int cursor = 0;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_draw_footer(";/. pick  ENTER=fire  X=all on ch  `=back");
     bool picking = true;
     int chosen = -1;
@@ -620,7 +620,7 @@ void feat_c5_scan_zb(void)
     c5_clear_results();
     c5_cmd_scan_zb(0xFF);  /* hop all channels 11-26 */
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_draw_footer("`=back");
     int last_n = -1;
@@ -765,7 +765,7 @@ void feat_c5_pmkid_5g(void)
     if (n == 0) { ui_toast("no 5 GHz APs found", T_WARN, 1500); return; }
 
     /* Target picker. */
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int cursor = 0;
     ui_draw_footer(";/. pick  ENTER=capture  `=back");
     int chosen = -1;
@@ -908,7 +908,7 @@ void feat_c5_nuke_5g(void)
          * 300 ms = ~11 s full dual-band sweep. */
         c5_cmd_scan_5g(300);
 
-        auto &dsp = M5Cardputer.Display;
+        auto &dsp = PoseidonDisplay;
         uint32_t deadline = millis() + 15000;
         bool dirty = true;
         while (millis() < deadline && five_n == 0) {
@@ -961,7 +961,7 @@ void feat_c5_nuke_5g(void)
 
     if (five_n == 0) { ui_toast("no 5 GHz APs found", T_WARN, 1500); return; }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int cursor = 0;
     uint32_t last = 0;
     uint32_t last_rotate = 0;

@@ -17,7 +17,7 @@
 
 static void draw_chat(const char *input, int input_len, bool typing)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
 
     d.setTextColor(T_ACCENT, T_BG);

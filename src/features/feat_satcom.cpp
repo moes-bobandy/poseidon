@@ -29,7 +29,7 @@ static satcom_tle_t s_tle = {};
 
 static void draw_skyplot(int cx, int cy, int radius, const satcom_pos_t &p)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Concentric rings: outer = horizon (el=0), inner = el=45, dot = zenith (el=90). */
     d.drawCircle(cx, cy, radius,      T_DIM);
     d.drawCircle(cx, cy, radius / 2,  0x2104);
@@ -54,7 +54,7 @@ static void draw_skyplot(int cx, int cy, int radius, const satcom_pos_t &p)
 
 static void track_screen(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_draw_footer("ENTER=passes  R=refresh TLE  `=back");
 
@@ -203,7 +203,7 @@ static void track_screen(void)
 
 static bool pick_favorite(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int cursor = s_sel_idx;
     int prev = -1;
     ui_draw_footer(";/. pick  ENTER=lock  `=back");
@@ -251,7 +251,7 @@ void feat_satcom(void)
 
     uint32_t norad = SATCOM_FAVORITES[s_sel_idx].norad;
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("SATCOM");
     d.drawFastHLine(4, BODY_Y + 12, SCR_W - 8, T_ACCENT);

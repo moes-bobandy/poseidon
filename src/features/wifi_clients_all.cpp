@@ -188,7 +188,7 @@ static void broadcast_deauth(const uint8_t *bssid, uint8_t ch, int bursts)
  * Shared by the scroll-window and cursor-move redraw paths. */
 static void draw_all_row(int r, int first, int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const acli_t &c = s_all[first + r];
     int y = BODY_Y + 18 + r * 10;
     bool sel = (first + r == cursor);
@@ -251,7 +251,7 @@ void feat_wifi_clients_all(void)
      * after this, so scrolling no longer flashes black. The header line
      * (volatile channel/LOCK) is overwritten in place via ui_text_w. */
     {
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         ui_force_clear_body();
         d.drawFastHLine(4, BODY_Y + 12, SCR_W - 8, T_ACCENT);
     }
@@ -274,7 +274,7 @@ void feat_wifi_clients_all(void)
         bool cursor_changed = (cursor != last_cursor);
         bool first_changed  = (first != last_first);
 
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
 
         if (cursor_changed && !first_changed && !count_changed &&
             s_all_n > 0 && last_cursor >= 0) {

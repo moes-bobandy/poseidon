@@ -239,7 +239,7 @@ static bool et_ap_up(uint8_t channel)
 
 static void et_draw_static(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("EVIL TWIN");
@@ -257,7 +257,7 @@ static void et_draw_static(void)
 static void et_draw_phase(const char *phase_name, uint16_t phase_color,
                           uint32_t remaining_ms)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Clear dynamic block (phase line + counters). */
     d.fillRect(0, BODY_Y + 54, SCR_W, 30, T_BG);
     d.setTextColor(phase_color, T_BG);

@@ -195,7 +195,7 @@ static void db_scan_populate(void)
  * name (single-target broadcast from the AP-detail X key). */
 static void run_broadcast_dashboard(const char *banner)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Re-assert STA mode + arm promisc. (Raw-IDF scan keeps the driver
      * in STA throughout, so this is just belt-and-suspenders.) */
@@ -342,7 +342,7 @@ static void run_broadcast_dashboard(const char *banner)
  * them all in rotation. Entry from the WiFi menu's 'Deauth all'. */
 void feat_wifi_deauth_broadcast(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_WARN, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("NUKING ALL APs");
@@ -369,7 +369,7 @@ void feat_wifi_deauth_broadcast(void)
  * nuke-all path, so X and Deauth-All looked identical. */
 void feat_wifi_deauth_broadcast_ap(const ap_t &a)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_WARN, T_BG);
     d.setCursor(4, BODY_Y + 2); d.printf("BCAST DEAUTH %.16s", a.ssid);
@@ -437,7 +437,7 @@ void feat_wifi_deauth_detect(void)
      * fields that actually changed via ui_text_w, so an idle screen with
      * no deauths in the air never blanks-and-repaints (the body flash). */
     {
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         d.setTextColor(T_ACCENT, T_BG);
         d.setCursor(4, BODY_Y + 2); d.print("DEAUTH DETECT");
         d.drawFastHLine(4, BODY_Y + 12, 100, T_ACCENT);

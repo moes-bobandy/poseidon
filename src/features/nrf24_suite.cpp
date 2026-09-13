@@ -195,7 +195,7 @@ void feat_nrf24_sniffer(void)
     rf.startListening();
 
     s_dev_count = 0;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint8_t ch = 2;
     uint32_t packets = 0, valid = 0;
     uint32_t last_draw = 0, last_hop = 0;
@@ -306,7 +306,7 @@ void feat_nrf24_mousejack(void)
         return;
     }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     auto &rf = nrf24_radio();
     int sel = 0;
     bool injecting = false;
@@ -470,7 +470,7 @@ void feat_nrf24_ble_spam(void)
     rf.setPALevel(RF24_PA_MAX);
     rf.openWritingPipe(BLE_ACCESS);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t adv_count = 0;
     bool active = false;
     const char *names[] = {"AirPods Pro", "Galaxy Buds", "Free WiFi", "TV Remote", "Pixel Watch"};
@@ -556,7 +556,7 @@ void feat_nrf24_scanner(void)
 
     uint8_t hits[126] = {0};
     uint8_t peak[126] = {0};
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int mode = 0;  /* 0=bars, 1=labels */
 
     const int GX = 4, GY = BODY_Y + 14, GW = SCR_W - 8, GH = BODY_H - 28;
@@ -671,7 +671,7 @@ void feat_nrf24_jammer(void)
     }
 
     auto &rf = nrf24_radio();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int sel = 0;
     bool active = false;
     uint32_t jam_start = 0;

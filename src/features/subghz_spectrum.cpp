@@ -34,7 +34,7 @@ static uint16_t rssi_color(int rssi)
     if (n < 0) n = 0;
     if (n > 80) n = 80;
     int p = (n * 255) / 80;                 /* 0..255 */
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (p < 60)  return d.color565(p / 2, 0, 30 + p);                          /* black -> indigo */
     if (p < 130) return d.color565(30 + (p - 60) * 3, 0, 120);                 /* indigo -> magenta */
     if (p < 200) return d.color565(238, (p - 130) / 2, 120 + (p - 130) / 3);   /* magenta -> neon rose */
@@ -49,7 +49,7 @@ static void run_bar_spectrum(const freq_range_t &range)
      * Eliminates the tearing/flicker of the prior fillRect+redraw loop.
      * Plus EMA smoothing on RSSI values so bars don't jitter between
      * reads of the same signal (RSSI is noisy at ~1 dB precision). */
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int GX = 24, GY = BODY_Y + 14, GW = SCR_W - 30, GH = BODY_H - 30;
     int bins = GW;
     float step = (range.end - range.start) / bins;
@@ -184,7 +184,7 @@ static void run_bar_spectrum(const freq_range_t &range)
 
 static void run_waterfall(const freq_range_t &range)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     static const struct { int rows, vscale; } OPTS[] = { {120, 1}, {60, 2}, {40, 3} };
     int rows = 0, vscale = 1;
@@ -255,7 +255,7 @@ static void run_waveform(float freq)
      * the actual demodulated data line from the CC1101. That's what
      * shows activity when a car key transmits: a burst of square-wave
      * pulses even though RSSI only nudges. */
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     cc1101_set_freq(freq); cc1101_set_rx();
     cc1101_set_rx();
 
@@ -382,7 +382,7 @@ static void run_waveform(float freq)
 
 static void run_peak_hold(const freq_range_t &range)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     cc1101_set_rx();
 
     const uint16_t ROSE = d.color565(0xEE, 0x22, 0x90);
@@ -519,7 +519,7 @@ static void run_peak_hold(const freq_range_t &range)
 
 static void run_radar(const freq_range_t &range)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     cc1101_set_rx();
 
     const int CX = SCR_H / 2 + 2;
@@ -693,7 +693,7 @@ static void run_radar(const freq_range_t &range)
 
 static void run_persistence(const freq_range_t &range)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     const int GX = 22, GY = 13;
     const int GW = SCR_W - GX;
@@ -790,7 +790,7 @@ static void run_persistence(const freq_range_t &range)
 
 static void run_blip_sonar(const freq_range_t &range)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     cc1101_set_rx();
 
     const int PLOT_Y = 14;
@@ -956,7 +956,7 @@ void feat_subghz_spectrum(void)
         return;
     }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int mode = 0, range = 0;   /* default to the 433 MHz band */
     const char *modes[] = {
         "Bar Spectrum", "Waterfall", "Oscilloscope",

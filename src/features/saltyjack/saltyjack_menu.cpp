@@ -175,7 +175,7 @@ static const int SJ_LIST_ROW_H = 16;
 
 static void draw_list_row(int idx, int slot, bool sel)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int y = SJ_CONTENT_Y + slot * SJ_LIST_ROW_H;
 
     d.fillRect(SJ_FRAME_X + SJ_FRAME_TH + 1, y,
@@ -191,7 +191,7 @@ static void draw_list_row(int idx, int slot, bool sel)
 
 static void draw_list_blurb(int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int blurb_y = SJ_CONTENT_Y + SJ_WINDOW * SJ_LIST_ROW_H + 4;
     d.drawFastHLine(SJ_CONTENT_X, blurb_y - 2,
                     SJ_FRAME_W - 2 * SJ_FRAME_TH - 4, SJ_ACCENT_DIM);
@@ -203,7 +203,7 @@ static void draw_list_blurb(int cursor)
 
 static void draw_list(int cursor, int offset)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     sj_frame("SaltyJack");
 
     int row_y0 = SJ_CONTENT_Y;
@@ -247,7 +247,7 @@ static bool grid_tile_pos(int i, int *x, int *y)
 
 static void draw_grid_tile(int i, bool sel)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int x, y;
     if (!grid_tile_pos(i, &x, &y)) return;
 
@@ -284,7 +284,7 @@ static void draw_grid(int cursor)
 /* ===== CAROUSEL view — one giant icon + label centered ===== */
 static void draw_carousel_card(int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Clear the interior card region only (between frame border and the
      * dots/footer), leaving the static chrome untouched. */
@@ -333,7 +333,7 @@ static void draw_carousel(int cursor)
 /* ===== INFO PAGE (per-tool deep dive) ===== */
 static void show_info_page(int idx)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     char title[32];
     snprintf(title, sizeof(title), "%s info", SJ_ITEMS[idx].label);
 
@@ -384,7 +384,7 @@ static void show_info_page(int idx)
 /* ===== SCREENSAVER — procedural ocean waves ===== */
 static void run_screensaver(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Independent drifting wave columns. */
     struct wave_col { int x; int y; int speed; uint16_t color; };
@@ -457,7 +457,7 @@ static void run_screensaver(void)
  */
 static void run_boot_splash(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     d.fillScreen(0x0000);
     d.pushImage(0, 0, SALTYJACK_SPLASH_W, SALTYJACK_SPLASH_H, saltyjack_splash);

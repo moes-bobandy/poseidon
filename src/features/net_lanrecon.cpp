@@ -134,7 +134,7 @@ static void banner_grab_tcp(IPAddress ip, uint16_t port, char *out, int out_sz)
 
 static void draw_status(const char *phase_name)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(0xF81F, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("LAN RECON");
@@ -283,7 +283,7 @@ static void export_csv(void)
 
 static void draw_results(int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
@@ -328,7 +328,7 @@ static void draw_results(int cursor)
 
 static void detail(int idx)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const host_t &h = s_hosts[idx];
     ui_clear_body();
     d.setTextColor(0xF81F, T_BG);

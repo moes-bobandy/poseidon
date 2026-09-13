@@ -306,7 +306,7 @@ static bool ap_matches_filter(const APRow &a)
 
 static void draw_main(bool full)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     if (full) {
         ui_clear_body();
@@ -342,7 +342,7 @@ static void draw_main(bool full)
 
 static void draw_targets(bool full)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Build filtered index. */
     int idx[MIMIR_MAX_APS];
@@ -460,7 +460,7 @@ static void draw_targets(bool full)
 
 static void draw_attack(bool full)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Target can only change underneath us via incoming scan events —
      * repaint when that happens, otherwise the screen is static. */
@@ -518,7 +518,7 @@ static void draw_attack(bool full)
 
 static void draw_live(bool full)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     if (full) {
         ui_clear_body();
@@ -547,7 +547,7 @@ static void draw_live(bool full)
 
 static void draw_status_screen(bool full)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     if (full) {
         ui_clear_body();

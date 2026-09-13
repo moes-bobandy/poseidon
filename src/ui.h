@@ -41,7 +41,7 @@ void ui_text(int x, int y, uint16_t fg, const char *fmt, ...);
 void ui_text_w(int x, int y, int w, uint16_t fg, const char *fmt, ...);
 void ui_splash(void);
 
-/* Convenience wrappers around M5Cardputer.Display for body text drawing. */
+/* Convenience wrappers around PoseidonDisplay for body text drawing. */
 void ui_body_println(int row, uint16_t color, const char *fmt, ...);
 
 /* ---- animations / polish ---- */

@@ -259,7 +259,7 @@ void feat_drone_remoteid(void)
 
     scan->start(0, false, false);   /* run until stopped */
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_draw_footer("ESC=stop  passive Remote ID listener");
 

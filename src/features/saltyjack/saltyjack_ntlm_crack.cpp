@@ -215,7 +215,7 @@ static void ensure_paths(void)
 static void draw_frame(const char *phase)
 {
     sj_frame("NTLMv2 CRACK");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(SJ_FG_DIM, SJ_BG);
     d.setCursor(SJ_CONTENT_X, BODY_Y + 16);
     d.print(phase);
@@ -224,7 +224,7 @@ static void draw_frame(const char *phase)
 
 static void draw_user_line(const String &user)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Clear the user row + dynamic rows below */
     d.fillRect(0, BODY_Y + 26, SCR_W, BODY_H - 26 - 12, SJ_BG);
     d.setTextColor(SJ_ACCENT, SJ_BG);
@@ -236,7 +236,7 @@ static void draw_user_line(const String &user)
 
 static void draw_progress(uint32_t tried, uint32_t pos, uint32_t total, uint32_t hps)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Row 1: tried count */
     d.fillRect(0, BODY_Y + 38, SCR_W, 10, SJ_BG);
     d.setTextColor(SJ_FG, SJ_BG);
@@ -266,7 +266,7 @@ static void draw_progress(uint32_t tried, uint32_t pos, uint32_t total, uint32_t
 
 static void draw_result(const String &msg, bool success)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillRect(0, BODY_Y + 76, SCR_W, 30, SJ_BG);
     d.setTextColor(success ? SJ_GOOD : SJ_BAD, SJ_BG);
     d.setCursor(4, BODY_Y + 78);
@@ -477,7 +477,7 @@ void feat_saltyjack_ntlm_crack(void)
 
     /* Summary screen. */
     draw_frame(abort ? "aborted." : "done.");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(SJ_FG, SJ_BG);
     d.setCursor(4, BODY_Y + 30);
     d.printf("hashes tried: %lu", (unsigned long)total_lines);

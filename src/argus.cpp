@@ -73,7 +73,7 @@ void argus_invalidate(void)
 
 static void overlay_lightning(const uint16_t *src, int x, int y)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Wipe last frame's bolts by re-pushing the top strip of the cached
      * face, then crackle DOWNWARD from the crown — kept inside the sprite
      * so the bolts never bleed into (or fail to clear from) the status bar
@@ -100,7 +100,7 @@ static void overlay_lightning(const uint16_t *src, int x, int y)
 
 static void overlay_zzz(int x, int y, uint32_t now)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     for (int i = 0; i < 2; ++i) {
         uint32_t phase = (now / 40 + i * 30) % 80;
         if (phase < 5) continue;
@@ -115,7 +115,7 @@ static void overlay_zzz(int x, int y, uint32_t now)
 
 static void overlay_scan_line(int x, int y, uint32_t now)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Magenta scan-line crosses the third-eye region every ~2 s. */
     uint32_t phase = now % 2000;
     if (phase > 500) return;
@@ -125,7 +125,7 @@ static void overlay_scan_line(int x, int y, uint32_t now)
 
 static void overlay_glitch(int x, int y, uint32_t now)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if ((now / 200) % 5 != 0) return;
     for (int i = 0; i < 3; ++i) {
         int sy = y + (int)(esp_random() % ARGUS_H);
@@ -138,7 +138,7 @@ static void overlay_glitch(int x, int y, uint32_t now)
 
 void argus_draw(argus_mood_t mood, int x, int y)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static bool s_reg = false;
     if (!s_reg) { s_reg = true; heap_reclaim_register(heap_argus_release); }
     uint32_t now = millis();

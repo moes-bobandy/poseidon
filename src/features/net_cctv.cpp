@@ -365,7 +365,7 @@ static uint32_t s_prog_last = 0;
 
 static void draw_cctv_chrome(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_draw_status(radio_name(), "cctv");
     d.setTextColor(T_ACCENT, T_BG);
@@ -385,7 +385,7 @@ static void draw_progress(int done, int total, int hits,
     if (!final && now - s_prog_last < 150) return;
     s_prog_last = now;
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Phase + current target IP, so the user knows we're actually working. */
     ui_text(4, BODY_Y + 16, T_FG, "%s", phase);
@@ -563,7 +563,7 @@ void feat_cctv_scan(void)
     if (!cctv_hits_ensure()) return;
     radio_switch(RADIO_WIFI);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int sel = 0;
     const char *items[] = {
         "Scan LAN /24",

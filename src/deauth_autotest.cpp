@@ -21,6 +21,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <M5Cardputer.h>
+#include "display/poseidon_display.h"
 #include "features/wifi_deauth_frame.h"
 
 static Preferences s_pref;
@@ -45,7 +46,7 @@ void poseidon_autotest_show_last_crash(void)
     s_pref.end();
     if (last_step == 0xFF || last_step == 0xFE) return;  /* no crash */
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillScreen(0x0000);
     d.setTextColor(0xF81F);  /* magenta */
     d.setTextSize(2);

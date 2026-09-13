@@ -65,7 +65,7 @@ static bool parse_sub_file(const char *path, sub_file_t *out)
 /* Simple SD file picker for .sub files. */
 static bool pick_sub_file(char *out_path, int max_len)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     File dir = SD.open("/poseidon");
     if (!dir) { ui_toast("cant open /poseidon", T_BAD, 1000); return false; }
 
@@ -141,7 +141,7 @@ void feat_subghz_replay(void)
     radio_switch(RADIO_SUBGHZ);
     cc1101_begin(sub.freq_mhz);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t plays = 0;
     uint32_t last_plays = (uint32_t)-1;
     bool chrome_dirty = true;

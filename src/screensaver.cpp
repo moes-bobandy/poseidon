@@ -182,7 +182,7 @@ static void wd_spawn_ap(void)
 }
 static void wd_render(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillScreen(T_BG);
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(2, 2); d.print("WARDRIVE.cinema");
@@ -291,7 +291,7 @@ static void run_wardrive_cinema(void)
 
 static void run_matrix_rain(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillScreen(T_BG);
     while (input_poll() == PK_NONE) {
         ui_matrix_rain(0, 0, SCR_W, SCR_H, T_FG);
@@ -306,7 +306,7 @@ static int eink_drift_y = 0;
 
 static void run_eink_breathing(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const uint32_t T_FADE_IN  = 8000;
     const uint32_t T_HOLD     = 3000;
     const uint32_t T_FADE_OUT = 8000;
@@ -365,7 +365,7 @@ static const char *const DS_NAMES[] = {
 
 static void run_deep_scan(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int cx = SCR_W / 2, cy = SCR_H / 2 + 4;
     int max_r = (SCR_W < SCR_H ? SCR_W : SCR_H) / 2 + 10;
 
@@ -464,7 +464,7 @@ static const uint16_t PS_OPEN_PORTS[] = {
 
 static void run_port_scan(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Build a fake target IP that looks plausible. */
     static char target[18];
     snprintf(target, sizeof(target), "10.%u.%u.%u",
@@ -591,7 +591,7 @@ static const char *const HC_REVEALS[] = {
 
 static void run_hex_cascade(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillScreen(T_BG);
     static hc_col_t cols[HC_COLS];
     for (int c = 0; c < HC_COLS; ++c) {
@@ -697,7 +697,7 @@ struct tc_line_t { char buf[40]; uint16_t color; };
 
 static void run_terminal_crack(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static tc_line_t lines[14];
     int line_count = 0;
     uint32_t next_line = millis();
@@ -793,7 +793,7 @@ struct na_node_t { int x, y; };
 
 static void run_neural_arc(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static na_node_t nodes[NA_NODES];
     /* Place nodes in a slightly-jittered grid so the mesh looks intentional. */
     int cols = 7, rows = 4;
@@ -900,7 +900,7 @@ static const char *const GB_MSGS[] = {
 
 static void run_glitch_bsod(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t next_burst = millis() + 800;
     uint32_t burst_until = 0;
     char msg[24] = "";
@@ -969,7 +969,7 @@ static void run_glitch_bsod(void)
 
 static void run_tide_waves(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* 4 waves, each a sin curve sampled across screen width. */
     struct wave_t { float freq; float amp; float phase; float speed; uint16_t color; };
     wave_t waves[4] = {

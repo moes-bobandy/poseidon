@@ -22,7 +22,7 @@ void feat_mesh_position(void)
     }
 
     ui_draw_footer("T=toggle  B=send now  `=back");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     while (true) {
         ui_clear_body();

@@ -12,7 +12,7 @@
 
 void feat_theme_picker(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     theme_id_t original = theme_current_id();  /* for ESC-restore */
     int sel = (int)original;
 

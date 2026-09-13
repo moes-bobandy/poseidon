@@ -31,7 +31,7 @@ void feat_mesh_nodes(void)
         int count;
         const mesh_node_t *nodes = mesh_nodes(&count);
 
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         ui_clear_body();
         d.setTextColor(T_ACCENT, T_BG);
         d.setCursor(4, BODY_Y + 2);

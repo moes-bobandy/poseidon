@@ -3,7 +3,7 @@
  * Regenerate: python scripts/convert_argus.py
  *
  * 12 mood sprites, 96x96 RGB565, native endian.
- * Render via M5Cardputer.Display.pushImage(x, y, ARGUS_W, ARGUS_H, ARGUS_<MOOD>).
+ * Render via PoseidonDisplay.pushImage(x, y, ARGUS_W, ARGUS_H, ARGUS_<MOOD>).
  */
 #pragma once
 

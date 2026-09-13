@@ -28,7 +28,7 @@
 void feat_tool_sd_format(void)
 {
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("SD FORMAT");
     d.drawFastHLine(4, BODY_Y + 12, 80, T_BAD);
@@ -69,7 +69,7 @@ void feat_tool_sd_format(void)
 
 void feat_tool_flashlight(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillScreen(0xFFFF);
     d.setTextColor(0x0000, 0xFFFF);
     d.setCursor(60, SCR_H - 10); d.print("any key to exit");
@@ -84,7 +84,7 @@ void feat_tool_flashlight(void)
 
 void feat_tool_screen_test(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const uint16_t cols[] = { 0xF800, 0x07E0, 0x001F, 0xFFFF, 0x0000, T_ACCENT, T_WARN };
     int idx = 0;
     while (true) {
@@ -110,7 +110,7 @@ void feat_tool_stopwatch(void)
 {
     ui_clear_body();
     ui_draw_footer("SPACE=start/stop L=lap R=reset `=back");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("STOPWATCH");
@@ -181,7 +181,7 @@ static const char *s_8ball[] = {
 
 void feat_tool_chance(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int mode = 0;  /* 0=dice 1=coin 2=8ball */
     char last[48] = "roll...";
 
@@ -244,7 +244,7 @@ static const char *s_morse[] = {
 static void morse_send(const char *s)
 {
     const int unit = 100;  /* ms per dot */
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     for (const char *p = s; *p; ++p) {
         char c = toupper(*p);
         const char *m = nullptr;
@@ -284,7 +284,7 @@ void feat_tool_mac_rand(void)
     esp_wifi_set_mac(WIFI_IF_STA, mac);
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("MAC RANDOMIZED");
     d.drawFastHLine(4, BODY_Y + 12, 130, T_ACCENT);
@@ -333,7 +333,7 @@ void feat_tool_calc(void)
     }
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("CALC");
     d.drawFastHLine(4, BODY_Y + 12, 50, T_ACCENT);
