@@ -10,6 +10,7 @@
  * doesn't work — that's why SD.begin() silently fails everywhere.
  */
 #include "sd_helper.h"
+#include "display/poseidon_display.h"
 #include <SD.h>
 #include <SPI.h>
 #include <FS.h>
@@ -49,6 +50,8 @@ bool sd_remount(void)
 
 static bool try_mount(int hz, bool fmt_if_fail, const char *tag)
 {
+    /* Shared SPI3 with external ILI9341: idle display before bus takeover. */
+    poseidon_lcd_quiesce();
     SD.end();
     sd_spi.end();
 
@@ -72,6 +75,7 @@ static bool try_mount(int hz, bool fmt_if_fail, const char *tag)
      * Reclaiming ~2 KB matters when WiFi has already eaten the rest. */
     bool ok = SD.begin(SD_CS, sd_spi, hz, "/sd", 2, fmt_if_fail);
     Serial.printf("[sd] %-12s @ %d Hz fmt=%d -> %s\n", tag, hz, fmt_if_fail, ok ? "OK" : "FAIL");
+    poseidon_lcd_resume_after_bus();
     return ok;
 }
 
@@ -206,6 +210,7 @@ bool sd_format(void)
 bool sd_force_format(void)
 {
     s_mounted = false;
+    poseidon_lcd_quiesce();
     SD.end();
     sd_spi.end();
     delay(30);
@@ -257,6 +262,7 @@ bool sd_force_format(void)
 
     /* Re-mount through the normal Arduino path so the rest of the
      * firmware keeps using SD.* as usual. */
+    poseidon_lcd_resume_after_bus();
     bool ok = sd_mount();
     return (fe == ESP_OK) && ok;
 }

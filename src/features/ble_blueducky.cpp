@@ -306,7 +306,7 @@ static int bd_pick_list(const char *title,
     int top = 0;
     const int rows = 6;
     const int row_h = 11;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int last_top = -1, last_cursor = -1;
 
     ui_clear_body();
@@ -453,7 +453,7 @@ static uint16_t s_bd_last_color = 0;
 static void bd_draw_status_force(const char *payload_name, const char *state,
                                  uint16_t color, bool force)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (force || !s_bd_status_init) {
         d.fillRect(0, BODY_Y, SCR_W, 80, T_BG);
         d.setTextColor(T_ACCENT, T_BG);
@@ -563,7 +563,7 @@ static void bd_run_payload(const char *name, const char *script)
 /* ===== Info splash ===== */
 static void bd_show_info(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("BLUEDUCKY");

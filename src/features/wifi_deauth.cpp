@@ -244,7 +244,7 @@ void feat_wifi_deauth(void)
 
     ui_clear_body();
     ui_draw_footer("ESC=stop  SPACE=pause");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     uint32_t last = 0;
     uint32_t last_sent = 0;

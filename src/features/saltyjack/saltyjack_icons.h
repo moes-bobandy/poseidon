@@ -25,7 +25,7 @@
  * scales we use (max ~72x72). */
 static inline void sj_draw_sprite(const uint16_t *sprite, int x, int y, int s)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (s <= 1) {
         d.pushImage(x, y, SJ_SPRITE_W, SJ_SPRITE_H, sprite);
         return;

@@ -18,7 +18,7 @@
 
 static void draw_waiting(const char *title, const char *sub)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print(title);
@@ -95,7 +95,7 @@ void feat_net_ping(void)
 
     draw_waiting("PING", host);
     ui_draw_footer("`=stop");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int y = BODY_Y + 36;
     int seq = 0;
     while (true) {
@@ -128,7 +128,7 @@ void feat_net_dns(void)
     IPAddress ip;
     bool ok = WiFi.hostByName(host, ip);
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("DNS LOOKUP");
     d.drawFastHLine(4, BODY_Y + 12, 90, T_ACCENT);

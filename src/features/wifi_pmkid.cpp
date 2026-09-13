@@ -481,7 +481,7 @@ static void draw_notification(void)
     uint32_t age = millis() - s_notify_start;
     if (age > NOTIFY_DURATION_MS) { s_notify = NTF_NONE; return; }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     bool big = (s_notify == NTF_HS);
 
     /* Blink cycle: flash every 200ms for first half, solid for second. */
@@ -590,7 +590,7 @@ void feat_wifi_pmkid(void)
 
     ui_clear_body();
     ui_draw_footer("H=hunt mode  `=stop");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("HANDSHAKE CAPTURE");
     d.drawFastHLine(4, BODY_Y + 12, 150, T_BAD);

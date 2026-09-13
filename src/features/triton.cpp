@@ -850,7 +850,7 @@ static const char *current_voice(mood_t m)
  * Much cooler than the old circle face. */
 static void draw_face(int cx, int cy, mood_t m, uint32_t tick)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint16_t glow  = T_ACCENT;
     uint16_t glow2 = T_ACCENT2;
     uint16_t dark  = 0x10A2;  /* dark steel */
@@ -986,7 +986,7 @@ static void draw_face(int cx, int cy, mood_t m, uint32_t tick)
 /* Mode picker — cursor over 4 cards, ENTER selects, ESC bails. */
 static bool pick_mode(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int sel = (int)s_mode;
     triton_mode_t modes[4] = { TM_HUNT, TM_STEALTH, TM_SURGICAL, TM_STORM };
     ui_draw_footer(";/. pick  ENTER=launch  `=back");
@@ -1097,7 +1097,7 @@ void feat_triton(void)
      * mashing ENTER again thinking the device froze. Spinner the
      * delay so we look alive. */
     ui_clear_body();
-    auto &dsp = M5Cardputer.Display;
+    auto &dsp = PoseidonDisplay;
     dsp.setTextColor(T_ACCENT, T_BG);
     dsp.setCursor(4, BODY_Y + 6);  dsp.print("ARGUS");
     dsp.setTextColor(T_FG, T_BG);
@@ -1280,7 +1280,7 @@ void feat_triton(void)
 
         if (now - last_draw > 120) {
             last_draw = now;
-            auto &d = M5Cardputer.Display;
+            auto &d = PoseidonDisplay;
             /* One-shot full clear when the body has been clobbered by
              * something OUTSIDE our normal redraw (menu bleeding through
              * on entry, action-overlay residue, etc). Set via the

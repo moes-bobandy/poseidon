@@ -19,6 +19,7 @@
 
 #include <Arduino.h>
 #include <M5Cardputer.h>
+#include "../../display/poseidon_display.h"
 
 /* ===== palette ===== */
 /* RGB565. */
@@ -51,7 +52,7 @@
  * Call this as the first thing on every SaltyJack page. */
 static inline void sj_frame(const char *title)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* Wipe the body. */
     d.fillRect(0, BODY_Y, SCR_W, BODY_H, SJ_BG);
@@ -87,7 +88,7 @@ static inline void sj_frame(const char *title)
 /* Legacy alias so existing callers still compile during the retrofit. */
 static inline void sj_clear(void)
 {
-    M5Cardputer.Display.fillRect(0, BODY_Y, SCR_W, BODY_H, SJ_BG);
+    PoseidonDisplay.fillRect(0, BODY_Y, SCR_W, BODY_H, SJ_BG);
 }
 
 /* ===== dividers + rows ===== */
@@ -95,14 +96,14 @@ static inline void sj_clear(void)
 /* Deep-ocean horizontal divider line at y, inside the frame. */
 static inline void sj_divider(int y)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.drawFastHLine(SJ_CONTENT_X, y, SJ_FRAME_W - 10, SJ_ACCENT_DIM);
 }
 
 /* Counter row: "label : value" — label in fg, value in accent. */
 static inline void sj_row(int y, const char *label, uint32_t value)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(SJ_FG, SJ_BG);
     d.setCursor(SJ_CONTENT_X, y);
     d.print(label);
@@ -113,7 +114,7 @@ static inline void sj_row(int y, const char *label, uint32_t value)
 /* Counter row with a colored value (for ACK=green, NAK=red, etc). */
 static inline void sj_row_colored(int y, const char *label, uint32_t value, uint16_t val_color)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(SJ_FG, SJ_BG);
     d.setCursor(SJ_CONTENT_X, y);
     d.print(label);
@@ -124,7 +125,7 @@ static inline void sj_row_colored(int y, const char *label, uint32_t value, uint
 /* "Active" counter row drawn with a solid highlight rect behind it. */
 static inline void sj_row_highlight(int y, const char *label, uint32_t value)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillRect(SJ_CONTENT_X - 2, y - 1, SJ_FRAME_W - 10, 10, SJ_SEL_BG);
     d.setTextColor(SJ_SEL_FG, SJ_SEL_BG);
     d.setCursor(SJ_CONTENT_X, y);
@@ -140,7 +141,7 @@ static inline void sj_row_highlight(int y, const char *label, uint32_t value)
  */
 static inline void sj_print_marker(int y, const char *marker, uint16_t color, const char *msg)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(color, SJ_BG);
     d.setCursor(SJ_CONTENT_X, y);
     d.print(marker);
@@ -165,7 +166,7 @@ static inline void sj_print_info(int y, const char *msg) { sj_print_marker(y, "[
  */
 static inline void sj_info_box(int x, int y, int w, int h, const char *label)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.drawRect(x, y, w, h, SJ_ACCENT_DIM);
     /* Label sits on top of the top border, inset, with black-bg knockout. */
     int lx = x + 4;
@@ -181,7 +182,7 @@ static inline void sj_info_box(int x, int y, int w, int h, const char *label)
 static inline void sj_info_row(int box_x, int box_y, int line_idx,
                                const char *label, const char *value)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int y = box_y + 5 + line_idx * 9;
     d.setTextColor(SJ_FG_DIM, SJ_BG);
     d.setCursor(box_x + 4, y);
@@ -196,7 +197,7 @@ static inline void sj_info_row(int box_x, int box_y, int line_idx,
 /* Horizontal bar: x,y = top-left; w,h = size; cur/total = fill ratio. */
 static inline void sj_progress_bar(int x, int y, int w, int h, uint32_t cur, uint32_t total)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.drawRect(x, y, w, h, SJ_ACCENT_DIM);
     int fill = 0;
     if (total > 0) fill = (int)((uint64_t)(w - 2) * cur / total);
@@ -210,7 +211,7 @@ static inline void sj_progress_bar(int x, int y, int w, int h, uint32_t cur, uin
 
 static inline void sj_header(int y, const char *title)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(SJ_ACCENT, SJ_BG);
     d.setCursor(SJ_CONTENT_X, y);
     d.print((const char *)"\xE2\x89\x8B\xE2\x89\x8B\xE2\x89\x8B [ ");
@@ -221,7 +222,7 @@ static inline void sj_header(int y, const char *title)
 /* Footer — RaspyJack-style with a little wave prefix. */
 static inline void sj_footer(const char *hint)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillRect(0, SCR_H - 11, SCR_W, 11, SJ_BG);
     d.drawFastHLine(0, SCR_H - 12, SCR_W, SJ_ACCENT_DIM);
     d.setTextColor(SJ_FG_DIM, SJ_BG);
@@ -232,5 +233,5 @@ static inline void sj_footer(const char *hint)
 
 static inline void sj_status_dot(int x, int y, bool active)
 {
-    M5Cardputer.Display.fillCircle(x, y, 3, active ? SJ_GOOD : SJ_BAD);
+    PoseidonDisplay.fillCircle(x, y, 3, active ? SJ_GOOD : SJ_BAD);
 }

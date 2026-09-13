@@ -442,7 +442,7 @@ static wp_verdict_t run_probe(const wp_target_t &t)
         int pct = (int)((millis() - start) * 100 / WP_PROBE_WAIT_MS);
         if (pct != last_pct) {
             last_pct = pct;
-            auto &d = M5Cardputer.Display;
+            auto &d = PoseidonDisplay;
             int bx = 4, by = BODY_Y + 70, bw = SCR_W - 8, bh = 6;
             d.drawRect(bx, by, bw, bh, T_DIM);
             d.fillRect(bx + 1, by + 1, (bw - 2) * pct / 100, bh - 2, T_ACCENT);
@@ -512,7 +512,7 @@ static bool s_wp_picker_invalid = true;
 
 static void draw_picker_row(int r, int idx, int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int y = BODY_Y + 18 + r * 12;
     if (idx >= s_tgt_n) {
         d.fillRect(0, y - 1, SCR_W, 12, T_BG);
@@ -547,7 +547,7 @@ static void draw_picker_row(int r, int idx, int cursor)
 
 static void draw_picker(int cursor, bool scanning)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static int last_cursor = -1;
     static int last_first = -1;
     static int last_count = -1;
@@ -621,7 +621,7 @@ static void draw_picker(int cursor, bool scanning)
 
 static void draw_probing(const wp_target_t &t)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("PROBING");
@@ -643,7 +643,7 @@ static void draw_probing(const wp_target_t &t)
 
 static void draw_verdict(const wp_target_t &t, wp_verdict_t v)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("VERDICT");

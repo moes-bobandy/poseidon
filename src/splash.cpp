@@ -35,7 +35,7 @@ static uint16_t blend565(uint16_t a, uint16_t b, uint8_t t)
 /* Draw the sprite centered, fade multiplier 0..255. */
 static void draw_wave(uint8_t brightness)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int ox = (SCR_W - splash_w) / 2;
     int oy = (SCR_H - splash_h) / 2;
     for (int y = 0; y < splash_h; ++y) {
@@ -54,7 +54,7 @@ static void draw_wave(uint8_t brightness)
 
 void ui_splash(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillScreen(0x0000);
 
     /* Boot jingle kicks off alongside the fade-in — sub-bass rumble into

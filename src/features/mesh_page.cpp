@@ -20,7 +20,7 @@ static void page_to(uint32_t dest)
     int input_len = 0;
     bool dirty = true;
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_draw_footer("ENTER=send  `=cancel");
 
     while (true) {

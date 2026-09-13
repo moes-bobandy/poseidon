@@ -157,7 +157,7 @@ static int parse_sub_raw(const char *path, int16_t *raw, int max_pulses)
 
 static int pick_category(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int sel = 0;
     int last_sel = -1;
 
@@ -194,7 +194,7 @@ static int pick_category(void)
 
 static int pick_file(const char *cat_name)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int sel = 0;
     int last_sel = -1, last_first = -1;
 
@@ -295,7 +295,7 @@ void feat_subghz_broadcast(void)
             display_name = b ? b + 1 : s_files[file];
         }
 
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         uint32_t plays = 0;
         uint32_t last_plays = (uint32_t)-1;
         bool chrome_dirty = true;

@@ -97,7 +97,7 @@ static bool s_meter_invalid = true;
 
 static void draw_meter(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static const char *last_prox = nullptr;
     static int8_t last_rssi = 127;
 
@@ -182,7 +182,7 @@ static bool s_picker_invalid = true;
 
 static void draw_picker_row(int i, int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int y = BODY_Y + 18 + i * 12;
     if (i >= s_found_n) {
         d.fillRect(0, y - 1, SCR_W, 12, T_BG);
@@ -205,7 +205,7 @@ static void draw_picker_row(int i, int cursor)
 
 static void draw_picker(int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static int last_cursor = -1;
     static int last_count = -1;
     static bool last_empty = false;
@@ -271,7 +271,7 @@ static void draw_picker(int cursor)
  * trackers (SmartTag, Tile, knockoffs may use different UUIDs). */
 static bool beep_tracker(const uint8_t mac[6], const char *kind)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("BEEP TRACKER");

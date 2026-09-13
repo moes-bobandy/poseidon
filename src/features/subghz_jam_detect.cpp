@@ -38,7 +38,7 @@ static const int JAM_FREQ_COUNT = sizeof(JAM_FREQS) / sizeof(JAM_FREQS[0]);
 
 static int pick_freq(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int sel = 4;  /* default 433.92 */
 
     /* Static chrome once; rows repaint per-row each pass so a cursor
@@ -92,7 +92,7 @@ void feat_subghz_jam_detect(void)
     ELECHOUSE_cc1101.setRxBW(270);   /* wider = catches more noise */
     cc1101_set_rx();
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.printf("JAM DETECT %.3f", freq);

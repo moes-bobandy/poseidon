@@ -13,7 +13,7 @@
 
 void feat_screensaver_picker(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int pool_n = screensaver_pool_count();
     int total  = pool_n + 1;          /* +1 for SHUFFLE row at index 0 */
     int saved  = screensaver_pick_get();

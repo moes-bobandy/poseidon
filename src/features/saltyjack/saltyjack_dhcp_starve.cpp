@@ -232,7 +232,7 @@ static bool run_transaction(const uint8_t mac[6])
 void feat_saltyjack_dhcp_starve(void)
 {
     radio_switch(RADIO_WIFI);
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     if (WiFi.status() != WL_CONNECTED || WiFi.localIP() == IPAddress(0,0,0,0)) {
         sj_frame("DHCP STARVE");

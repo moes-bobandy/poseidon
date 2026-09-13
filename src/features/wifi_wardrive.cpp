@@ -3,7 +3,7 @@
  *
  * Requires:
  *   - GPS fix from the M5Stack LoRa-GNSS HAT (NMEA on UART1)
- *   - SD card mounted (M5Cardputer.Display.getSDCard() or sd_mount())
+ *   - SD card mounted (PoseidonDisplay.getSDCard() or sd_mount())
  *
  * Output: /poseidon/wigle-YYYYMMDD-HHMMSS.csv with the standard
  * WiGLE CSV v1.6 header. Rows are deduped by BSSID — stronger RSSI
@@ -318,7 +318,7 @@ static void merge_c5_5g(void)
 
 static void draw_plain_view(bool &dirty)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (dirty) {
         ui_clear_body();
         d.setTextColor(T_ACCENT, T_BG);
@@ -341,7 +341,7 @@ static void draw_plain_view(bool &dirty)
 
 static void draw_argus_view(argus_mood_t base, bool &dirty)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Clear ONCE on entry / view switch. argus_draw caches and will not
      * re-push an unchanged mood, so a per-frame clear would leave a gap.
      * Invalidate the cache here so the face repaints after the wipe (fixes

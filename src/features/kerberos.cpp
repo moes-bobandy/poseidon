@@ -32,7 +32,7 @@ static uint32_t s_persisted = 0;
 // host alive with CTAPHID KEEPALIVE frames so a slow human approval never times
 // out. Runs from kerberos_hid_poll() on the main loop, never the USB callback.
 static bool kerberos_user_present(void *) {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("APPROVE SIGN-IN");
@@ -79,7 +79,7 @@ static void persist_counter(void) {
 // Prompt shown in normal mode: entering KERBEROS needs a reboot into key mode
 // so FIDO can be the sole USB HID device. Returns true if the user confirmed.
 static bool confirm_enter_key_mode(void) {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("KERBEROS KEY MODE");
@@ -154,7 +154,7 @@ void feat_kerberos(void) {
     kerberos_hid_begin();
 
     // Status screen. Redraw once, then poll the transport and the keyboard.
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("KERBEROS");

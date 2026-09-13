@@ -151,7 +151,7 @@ void feat_usb_guard(void)
     radio_switch(RADIO_WIFI);
     if (!wifi_lean_sta_init()) { ui_toast("WiFi init failed", T_BAD, 1500); return; }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     /* ---- Phase 1: baseline ---- */
     ui_clear_body();

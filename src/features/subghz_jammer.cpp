@@ -25,7 +25,7 @@ void feat_subghz_jammer(void)
         return;
     }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     float freq = 433.92f;
     int mode = 0;  /* 0=intermittent, 1=full carrier */
     bool active = false;

@@ -115,7 +115,7 @@ void feat_ble_findmy(void)
 
     /* Sub-menu: pick single or flock. */
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("FIND MY EMULATOR");
     d.drawFastHLine(4, BODY_Y + 12, 140, T_ACCENT);

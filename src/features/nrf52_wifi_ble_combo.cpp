@@ -30,7 +30,7 @@
 
 static bool ensure_feather(void) {
     if (NRF52Hardware::is_up()) return true;
-    ui_clear_body(); auto &d = M5Cardputer.Display;
+    ui_clear_body(); auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG); d.setCursor(4, BODY_Y+10);
     d.print("Connecting to Feather...");
     if (NRF52Hardware::begin()) { ui_toast("nRF52 OK", T_GOOD, 600); return true; }
@@ -52,7 +52,7 @@ void feat_nrf52_wifi_ble_combo(void)
 {
     if (!ensure_feather()) return;
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint8_t target_bssid[6];
     uint8_t channel = 1;
     char ssid[33] = "";

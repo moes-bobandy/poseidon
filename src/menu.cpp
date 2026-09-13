@@ -1079,7 +1079,7 @@ static int count_children(const menu_node_t *parent)
 static void draw_menu_anim(const menu_node_t *parent, int cursor)
 {
     if (!ui_ambient_enabled()) return;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int n = count_children(parent);
     if (n <= 0) return;
 
@@ -1138,7 +1138,7 @@ static bool               s_menu_force        = true;
 
 static void draw_menu(const menu_node_t *parent, int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     int n = count_children(parent);
 
@@ -1265,7 +1265,7 @@ void ui_show_current_help(void)
 /* Show detailed info for the selected item until any key pressed. */
 static void show_info(const menu_node_t *item)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_force_clear_body();
     d.setTextColor(T_ACCENT2, T_BG);
     d.setCursor(4, BODY_Y + 2);

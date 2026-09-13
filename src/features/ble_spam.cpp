@@ -154,7 +154,7 @@ static void spam_teardown(void)
 static spam_kind_t pick_kind(void)
 {
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("BLE SPAM");
     d.drawFastHLine(4, BODY_Y + 12, 90, T_ACCENT);
@@ -195,7 +195,7 @@ void feat_ble_spam(void)
 
     ui_clear_body();
     ui_draw_footer("`=stop");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.printf("%s SPAM", s_kind_name[s_kind]);
     d.drawFastHLine(4, BODY_Y + 12, 140, T_BAD);

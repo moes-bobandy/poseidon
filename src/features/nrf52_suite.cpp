@@ -39,7 +39,7 @@ static bool ensure_dongle(void)
 
     ui_clear_body();
     ui_draw_status("nRF52", "");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 10);
     d.print("Connecting to Feather...");
@@ -84,7 +84,7 @@ void feat_nrf52_longrange(void)
     ui_draw_status("nRF52", "LR Scan");
     ui_draw_footer("ESC=stop  R=rescan");
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
     d.print("BLE 5.0 Long-Range Scan");
@@ -170,7 +170,7 @@ void feat_nrf52_sniff(void)
     ui_draw_status("nRF52", "BLE Sniff");
     ui_draw_footer("ESC=stop  S=save");
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
     d.print("BLE ADV Capture");
@@ -239,7 +239,7 @@ void feat_nrf52_scan(void)
     ui_draw_status("nRF52", "Scan");
     ui_draw_footer("ESC=stop  ENTER=details  R=rescan");
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
     d.print("BLE 5.0 Full Scan");
@@ -319,7 +319,7 @@ void feat_nrf52_zigbee(void)
     ui_draw_status("nRF52", "Zigbee");
     ui_draw_footer("ESC=stop  +/-=channel");
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
     d.print("802.15.4 Zigbee Sniffer");
@@ -397,7 +397,7 @@ void feat_nrf52_mitm(void)
     ui_draw_status("nRF52", "MITM");
     ui_draw_footer("ESC=back");
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
     d.print("BLE Connection MITM");

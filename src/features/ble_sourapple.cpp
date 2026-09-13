@@ -414,7 +414,7 @@ void feat_ble_sourapple(void)
      * called per UI iteration replaces the dedicated task. */
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("SOUR APPLE");
     d.drawFastHLine(4, BODY_Y + 12, 90, T_BAD);

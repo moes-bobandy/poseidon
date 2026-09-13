@@ -158,7 +158,7 @@ static int  s_pk_last_shown = -1;
 
 static void draw_picker_force(int cursor, bool scanning, bool force)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (force || !s_pk_init) {
         ui_clear_body();
         d.setTextColor(0xF81F, T_BG);
@@ -230,7 +230,7 @@ static int  s_ctl_last_intensity = -1;
 
 static void draw_control_force(bool force)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (force || !s_ctl_init) {
         ui_clear_body();
         d.setTextColor(0xF81F, T_BG);

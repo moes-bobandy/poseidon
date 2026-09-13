@@ -100,7 +100,7 @@ void feat_ble_tracker(void)
     while (true) {
         if (millis() - last > 400) {
             last = millis();
-            auto &d = M5Cardputer.Display;
+            auto &d = PoseidonDisplay;
             if (s_tracker_count != last_count) {
                 ui_clear_body();
                 d.setTextColor(T_ACCENT, T_BG);
@@ -222,7 +222,7 @@ void feat_ble_sniff(void)
     ui_clear_body();
     ui_draw_footer("`=stop");
     {
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         d.setTextColor(T_ACCENT, T_BG);
         d.setCursor(4, BODY_Y + 2); d.print("BLE SNIFFER");
         d.drawFastHLine(4, BODY_Y + 12, 90, T_ACCENT);
@@ -274,7 +274,7 @@ void feat_ble_beacon(void)
     adv->start();
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("iBEACON");
     d.drawFastHLine(4, BODY_Y + 12, 60, T_ACCENT);

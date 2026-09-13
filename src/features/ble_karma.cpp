@@ -80,7 +80,7 @@ void feat_ble_karma(void)
     NimBLEAdvertising *adv = NimBLEDevice::getAdvertising();
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(0xF81F, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("BLE KARMA");
     d.drawFastHLine(4, BODY_Y + 12, 80, 0xF81F);

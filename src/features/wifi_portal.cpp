@@ -266,7 +266,7 @@ static int pick_template(void)
     const int row_h = 11;
     int last_top = -1, last_cursor = -1;
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("EVIL PORTAL");
@@ -316,7 +316,7 @@ static int pick_source(const ssid_source_opt_t *opts, int count, const char *tit
     int cursor = 0;
     int last_cursor = -1;
     const int row_h = 14;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print(title);
@@ -357,7 +357,7 @@ static int pick_string_list(const char *const *items, int count, const char *tit
     int cursor = 0, top = 0;
     const int rows = 7, row_h = 11;
     int last_top = -1, last_cursor = -1;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print(title);
@@ -593,7 +593,7 @@ static void run_portal(void)
     esp_wifi_get_channel(&ap_ch, &ap_sc);
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("PORTAL ACTIVE");
     d.drawFastHLine(4, BODY_Y + 12, 110, T_BAD);

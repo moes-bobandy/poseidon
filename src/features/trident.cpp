@@ -28,7 +28,7 @@ bool g_trident_cdc_active = false;
 
 static void send_frame(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int frame_bytes = 240 * 135 * 2;
     Serial.printf("{\"evt\":\"frame\",\"w\":240,\"h\":135,\"fmt\":\"rgb565\",\"len\":%d}\n", frame_bytes);
     for (int y = 0; y < 135; y++) {
@@ -225,7 +225,7 @@ void feat_trident(void)
 
     ui_clear_body();
     ui_draw_status("trident", "bridge");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 20);
     d.print("TRIDENT PC Bridge active");
@@ -260,7 +260,7 @@ void feat_trident(void)
          * can see whether the host has connected yet. */
         if (millis() - last_status_ms > 500) {
             last_status_ms = millis();
-            auto &d = M5Cardputer.Display;
+            auto &d = PoseidonDisplay;
             d.fillRect(4, BODY_Y + 50, SCR_W - 8, 12, T_BG);
             d.setTextColor(now_connected ? T_GOOD : T_DIM, T_BG);
             d.setCursor(4, BODY_Y + 50);

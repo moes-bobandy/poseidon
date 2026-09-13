@@ -26,7 +26,7 @@ void feat_wifi_connect(void)
     s_prefs.begin("poseidon", false);
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("WIFI CONNECT");
     d.drawFastHLine(4, BODY_Y + 12, 100, T_ACCENT);
@@ -142,7 +142,7 @@ void feat_file_browser(void)
     int cursor = 0;
 
     auto draw = [&]() {
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         ui_clear_body();
         d.setTextColor(T_ACCENT, T_BG);
         d.setCursor(4, BODY_Y + 2); d.printf("FILES  %s", path);
@@ -208,7 +208,7 @@ void feat_clock(void)
     /* Uses GPS time if the LoRa-GNSS hat is present, else uptime. */
     ui_clear_body();
     ui_draw_footer("`=back");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("CLOCK");
@@ -253,7 +253,7 @@ void feat_heap_census(void)
 {
     ui_clear_body();
     ui_draw_footer("R=reclaim  `=back");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("HEAP internal");
@@ -290,7 +290,7 @@ void feat_heap_census(void)
 void feat_settings(void)
 {
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("SETTINGS");
     d.drawFastHLine(4, BODY_Y + 12, 70, T_ACCENT);
@@ -384,7 +384,7 @@ extern void ui_ambient_enabled_set(bool on);
 
 void feat_ambient_preview(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillScreen(T_BG);
     ui_status_invalidate();
     ui_draw_status("AMBIENT", "preview");

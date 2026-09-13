@@ -155,7 +155,7 @@ void feat_ir_remote(void)
     carrier_on();
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("SAMSUNG SMART REMOTE");
     d.drawFastHLine(4, BODY_Y + 12, SCR_W - 8, T_ACCENT);
@@ -252,7 +252,7 @@ void feat_ir_test(void)
 {
     ui_clear_body();
     ui_draw_footer("ESC=stop");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("IR LED HARDWARE TEST");
     d.drawFastHLine(4, BODY_Y + 12, 180, T_ACCENT);

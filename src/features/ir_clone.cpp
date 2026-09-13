@@ -226,7 +226,7 @@ static void send_btn(const ir_profile_t &prof, const ir_btn_t &btn)
 
 static void profile_screen(const ir_profile_t &prof)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.printf("%s", prof.name);
@@ -283,7 +283,7 @@ void feat_ir_clone(void)
 
     int cursor = 0;
     int prev   = -1;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_draw_footer(";/. pick  ENTER=open  `=back");
     while (true) {
         if (cursor != prev) {
@@ -354,7 +354,7 @@ static void prank_run_screen(const char *title, const char *blurb,
     s_carrier_hz = 0;
     carrier_setup(38000);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_draw_footer("running...  `=skip after");
     d.setTextColor(T_BAD, T_BG);

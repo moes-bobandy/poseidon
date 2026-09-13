@@ -22,7 +22,7 @@
 
 static uint16_t heat_color(int pct)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (pct < 20)  return d.color565(0, 0, 80 + pct * 4);       /* deep blue */
     if (pct < 40)  return d.color565(0, (pct - 20) * 12, 160);  /* blue→cyan */
     if (pct < 60)  return d.color565(0, 255, 160 - (pct-40)*8); /* cyan→green */
@@ -32,7 +32,7 @@ static uint16_t heat_color(int pct)
 
 static void draw_meter(int pct, int rssi, const char *label)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int BAR_X = 20, BAR_Y = BODY_Y + 30, BAR_W = SCR_W - 40, BAR_H = 30;
 
     /* Background frame. */
@@ -89,7 +89,7 @@ void feat_subghz_finder(void)
         return;
     }
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     float freq = 433.92f;
     ELECHOUSE_cc1101.SetRx();
     int peak_rssi = -120;
@@ -171,7 +171,7 @@ void feat_nrf24_finder(void)
     rf.setAutoAck(false);
     rf.setDataRate(RF24_2MBPS);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint8_t ch = 40;
     int strength = 0;
     int peak_str = 0;

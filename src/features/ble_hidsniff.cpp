@@ -81,7 +81,7 @@ static bool s_have_log = false;
 
 static void draw_frame(const char *status)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("HID SNIFF");
@@ -93,7 +93,7 @@ static void draw_frame(const char *status)
 
 static void draw_body(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* history rows */
     int shown = s_line_n < HS_LINES ? s_line_n : HS_LINES;
     int first = s_line_n - shown;
@@ -204,10 +204,10 @@ void feat_ble_hidsniff(void)
     /* Connected: animate through the blocking Report Map read + char
      * discovery so the stale connecting screen does not look frozen. */
     ui_spinner(SCR_W - 14, BODY_Y + 6, T_ACCENT);
-    M5Cardputer.Display.fillRect(0, BODY_Y + 74, SCR_W, 10, T_BG);
-    M5Cardputer.Display.setTextColor(T_DIM, T_BG);
-    M5Cardputer.Display.setCursor(4, BODY_Y + 74);
-    M5Cardputer.Display.print("reading HID map...");
+    PoseidonDisplay.fillRect(0, BODY_Y + 74, SCR_W, 10, T_BG);
+    PoseidonDisplay.setTextColor(T_DIM, T_BG);
+    PoseidonDisplay.setCursor(4, BODY_Y + 74);
+    PoseidonDisplay.print("reading HID map...");
 
     /* Find the HID service + Report Map. */
     NimBLERemoteService *svc = s_client->getService(NimBLEUUID(HID_SVC_UUID));

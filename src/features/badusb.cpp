@@ -176,7 +176,7 @@ static void exec_line(const char *line)
 static void run_payload(const char *script)
 {
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("RUNNING");
     d.drawFastHLine(4, BODY_Y + 12, 80, T_BAD);
@@ -220,7 +220,7 @@ static void run_payload(const char *script)
 static int pick_payload(void)
 {
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("BADUSB PAYLOADS");
     d.drawFastHLine(4, BODY_Y + 12, 130, T_ACCENT);
@@ -262,7 +262,7 @@ void feat_badusb_live(void)
     }
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("LIVE KEYBOARD");
     d.drawFastHLine(4, BODY_Y + 12, 130, T_ACCENT);
@@ -363,7 +363,7 @@ static int pick_list_scrollable(const char *title,
     int top = 0;
     const int rows = 6;        /* visible rows in the body */
     const int row_h = 11;
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int last_top = -1, last_cursor = -1;
 
     ui_clear_body();

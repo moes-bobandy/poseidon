@@ -89,7 +89,7 @@ static bool hex_parse(const char *s, uint8_t *out, int max, int *out_len)
 
 static void print_hex(const uint8_t *buf, size_t n)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setCursor(4, BODY_Y + 54);
     int limit = n < 8 ? (int)n : 8;
     for (int i = 0; i < limit; ++i) d.printf("%02X ", buf[i]);
@@ -106,7 +106,7 @@ static void print_hex(const uint8_t *buf, size_t n)
 
 static void show_characteristic(int idx)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     gatt_node_t &n = s_flat[idx];
     if (n.is_svc || !n.chr) return;
 
@@ -161,7 +161,7 @@ static void show_characteristic(int idx)
 
 static void draw_tree(int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
@@ -227,7 +227,7 @@ void feat_ble_gatt(void)
     radio_switch(RADIO_BLE);
 
     /* Shared connecting screen. */
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     char tgt[40];
     if (g_ble_target.name[0])
         snprintf(tgt, sizeof(tgt), "%s", g_ble_target.name);

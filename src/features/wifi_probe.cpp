@@ -299,7 +299,7 @@ static int snapshot_unique_ssids(char dst[][33], int cap)
 
 static void draw_probe_list(int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);

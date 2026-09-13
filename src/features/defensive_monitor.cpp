@@ -707,7 +707,7 @@ void feat_defensive_monitor(void)
     enter_wifi_phase();
     xTaskCreate(hop_task, "dm_hop", 3072, nullptr, 4, nullptr);
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_draw_footer("ESC=stop  WiFi+BLE time-sliced");
 

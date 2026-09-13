@@ -84,7 +84,7 @@ void feat_subghz_record(void)
     /* Set widest RX bandwidth for maximum sensitivity. */
     ELECHOUSE_cc1101.setRxBW(270);  /* match Flipper OOK270 preset */
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     float freq = 433.92f;
     s_raw_len = 0;
     bool recorded = false;

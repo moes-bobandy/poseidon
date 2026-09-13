@@ -62,7 +62,7 @@ static HardwareSerial uart1(1);
  * > 60% printable characters in a sample of > 20 bytes. */
 static int detect_baud(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     ui_text(4, BODY_Y + 2, T_ACCENT, "Detecting baud...");
     ui_draw_footer("esc=cancel");

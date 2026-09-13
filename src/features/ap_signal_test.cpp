@@ -156,7 +156,7 @@ static void ap_tear_down(void)
 
 static void draw_static(uint8_t ch_idx)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("AP SIGNAL TEST");
@@ -188,7 +188,7 @@ void feat_ap_signal_test(void)
     }
 
     draw_static(ch_idx);
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     uint32_t t_start = millis();
     uint32_t last    = 0;

@@ -13,7 +13,7 @@
 
 void feat_sfx_settings(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_draw_footer("+/-=vol  M=mute  T=test  `=back");
 
     while (true) {

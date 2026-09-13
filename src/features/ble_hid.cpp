@@ -141,7 +141,7 @@ static void setup_hid(const char *name)
 
 static int pick_disguise(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int cursor = 0;
     int last_cursor = -1;
     ui_draw_footer(";/. move  ENTER=pick  R=random  `=back");
@@ -206,7 +206,7 @@ void feat_ble_hid(void)
      * paints over the picker frame. ui_force_clear_body bypasses the
      * suppression (it's exactly for screen transitions). */
     ui_force_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("BAD-KB");
     d.drawFastHLine(4, BODY_Y + 12, 70, T_ACCENT);

@@ -100,7 +100,7 @@ bool input_line(const char *prompt, char *out_buf, size_t out_sz)
     out_buf[0] = '\0';
     size_t len = 0;
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     int y0 = BODY_Y + 20;
     d.fillRect(0, y0, SCR_W, 60, T_BG);
     d.setTextColor(T_ACCENT, T_BG);

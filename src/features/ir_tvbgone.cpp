@@ -157,7 +157,7 @@ void feat_ir_tvbgone(void)
 
     ui_clear_body();
     ui_draw_footer("`=stop");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("TV-B-GONE");
     d.drawFastHLine(4, BODY_Y + 12, 90, T_BAD);

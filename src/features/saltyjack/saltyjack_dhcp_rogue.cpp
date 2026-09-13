@@ -315,7 +315,7 @@ static void run_rogue(rogue_mode_t mode)
 
     bool ok = (mode == ROGUE_STA) ? setup_sta_mode() : setup_ap_mode();
     if (!ok) {
-        auto &d = M5Cardputer.Display;
+        auto &d = PoseidonDisplay;
         sj_frame(mode == ROGUE_STA ? "ROGUE DHCP STA" : "ROGUE DHCP AP");
         d.setTextColor(SJ_BAD, SJ_BG);
         d.setCursor(SJ_CONTENT_X, BODY_Y + 24);
@@ -336,7 +336,7 @@ static void run_rogue(rogue_mode_t mode)
 
     sj_frame(mode == ROGUE_STA ? "ROGUE DHCP STA" : "ROGUE DHCP AP");
 
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(SJ_FG_DIM, SJ_BG);
     d.setCursor(SJ_CONTENT_X, SJ_CONTENT_Y);
     d.print("srv ");

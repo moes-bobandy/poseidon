@@ -217,7 +217,7 @@ void feat_net_responder(void)
 
     ui_clear_body();
     ui_draw_footer("`=stop");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(0xF81F, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("RESPONDER");
     d.drawFastHLine(4, BODY_Y + 12, 100, 0xF81F);

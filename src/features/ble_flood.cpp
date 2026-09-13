@@ -96,7 +96,7 @@ void feat_ble_flood(void)
     s_flood_alive = true;
 
     ui_clear_body();
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_BAD, T_BG);
     d.setCursor(4, BODY_Y + 2); d.print("BLE FLOOD");
     d.drawFastHLine(4, BODY_Y + 12, 80, T_BAD);

@@ -177,7 +177,7 @@ static int sort_fn(const void *a, const void *b)
  * does one ui_force_clear_body() at entry / after a modal. */
 static void draw_list(int cursor)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
@@ -508,7 +508,7 @@ void feat_ble_scan(void)
             g_ble_target_valid = true;
 
             /* Detail view with signal bar + action hotkeys. */
-            auto &d = M5Cardputer.Display;
+            auto &d = PoseidonDisplay;
             ui_clear_body();
             d.setTextColor(T_ACCENT, T_BG);
             d.setCursor(4, BODY_Y + 2); d.print("BLE DEVICE");

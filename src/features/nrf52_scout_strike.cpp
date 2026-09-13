@@ -32,7 +32,7 @@ static bool ensure_feather(void)
     if (NRF52Hardware::is_up()) return true;
     ui_clear_body();
     ui_draw_status("Scout", "");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG); d.setCursor(4, BODY_Y+10);
     d.print("Connecting to Feather...");
     ui_spinner(SCR_W-16, BODY_Y+14, T_ACCENT);
@@ -118,7 +118,7 @@ static void scout_phase(void) {
     radio_switch(RADIO_BLE);
     nrf52_led_set(NRF52_LED_BLE_SCAN);
     ui_clear_body(); ui_draw_status("Scout", "scanning");
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.setTextColor(T_ACCENT, T_BG); d.setCursor(4, BODY_Y+2);
     d.print("SCOUT: NimBLE scan..."); d.drawFastHLine(4, BODY_Y+12, SCR_W-8, T_ACCENT2);
     /* getResults() blocks ~10s in one call and cannot animate; a persistent
@@ -174,7 +174,7 @@ static void strike_phase(void) {
     if (s_selected < 0) return;
     const scout_target_t &tgt = s_targets[s_selected];
     nrf52_led_set(NRF52_LED_SCOUT_LOCKED);
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG); d.setCursor(4, BODY_Y+2); d.print("TARGET LOCKED");
     d.drawFastHLine(4, BODY_Y+12, SCR_W-8, T_BAD);

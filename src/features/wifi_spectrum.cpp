@@ -143,7 +143,7 @@ void wifi_spectrum_invalidate_cache(void)
 
 static void draw_bars(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     bool &first = s_spec_first;
     int8_t *last_peak = s_spec_last_peak;
     int &last_current_ch = s_spec_last_current_ch;
@@ -222,7 +222,7 @@ static void draw_bars(void)
 
 static void draw_waterfall(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int top      = BODY_Y + 14;
     const int bottom   = FOOTER_Y - 10;
     const int rows_h   = bottom - top;
@@ -288,7 +288,7 @@ static struct { float age_ms; int8_t rssi; } s_radar_blip[14];
 
 static void draw_radar(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int cx = SCR_W / 2;
     const int cy = BODY_Y + (BODY_H / 2) + 4;
     const int rmax = (BODY_H / 2) - 4;

@@ -52,7 +52,7 @@ static bool     s_pulse_on = false;
 
 void ui_init(void)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     d.fillScreen(T_BG);
     d.setTextWrap(false, false);
     d.setTextSize(1);
@@ -74,7 +74,7 @@ void ui_clear_body(void)
     } else {
         s_clear_count = 0;
     }
-    M5Cardputer.Display.fillRect(0, BODY_Y, SCR_W, BODY_H, T_BG);
+    PoseidonDisplay.fillRect(0, BODY_Y, SCR_W, BODY_H, T_BG);
     s_last_clear = now;
 }
 
@@ -83,14 +83,14 @@ void ui_clear_body(void)
  * transitions follow a full-screen fill that wipes the status bar too. */
 void ui_force_clear_body(void)
 {
-    M5Cardputer.Display.fillRect(0, BODY_Y, SCR_W, BODY_H, T_BG);
+    PoseidonDisplay.fillRect(0, BODY_Y, SCR_W, BODY_H, T_BG);
     s_last_clear = millis();
     ui_status_invalidate();
 }
 
 void ui_text(int x, int y, uint16_t fg, const char *fmt, ...)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     char buf[64];
     va_list ap; va_start(ap, fmt); vsnprintf(buf, sizeof(buf), fmt, ap); va_end(ap);
     /* Overwrite with bg — fills the text bbox so no clear needed. */
@@ -103,7 +103,7 @@ void ui_text(int x, int y, uint16_t fg, const char *fmt, ...)
 
 void ui_text_w(int x, int y, int w, uint16_t fg, const char *fmt, ...)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     char buf[64];
     va_list ap; va_start(ap, fmt); vsnprintf(buf, sizeof(buf), fmt, ap); va_end(ap);
     d.fillRect(x, y, w, 10, T_BG);
@@ -115,7 +115,7 @@ void ui_text_w(int x, int y, int w, uint16_t fg, const char *fmt, ...)
 /* Draw a vertical gradient fill between two colors. */
 static void vgradient(int x, int y, int w, int h, uint16_t top, uint16_t bot)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* h<=1 would divide by zero below (guru meditation on Xtensa). */
     if (h <= 0) return;
     if (h == 1) { d.drawFastHLine(x, y, w, top); return; }
@@ -144,7 +144,7 @@ static bool     s_st_valid = false;
 
 void ui_draw_status(const char *radio, const char *extra)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
 
     const char *rr = radio ? radio : "idle";
     const char *ee = (extra && *extra) ? extra : "";
@@ -230,7 +230,7 @@ void ui_status_invalidate(void) { s_st_valid = false; }
 
 void ui_draw_footer(const char *hints)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     vgradient(0, FOOTER_Y + 1, SCR_W, FOOTER_H - 1, COL_FOOTER_BG, 0x0000);
     d.drawFastHLine(0, FOOTER_Y, SCR_W, COL_RULE);
     d.setTextColor(T_DIM, 0);
@@ -260,7 +260,7 @@ void ui_draw_footer(const char *hints)
 
 void ui_toast(const char *msg, uint16_t color, uint32_t ms)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint8_t scale = ui_big_text() ? 2 : 1;
     /* Glyph base is 6x8 in the default font. At scale 2 it's 12x16.
      * Don't use d.textWidth() here because the size setter after the
@@ -293,7 +293,7 @@ void ui_toast(const char *msg, uint16_t color, uint32_t ms)
 
 void ui_body_println(int row, uint16_t color, const char *fmt, ...)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     char buf[128];
     va_list ap;
     va_start(ap, fmt);
@@ -314,7 +314,7 @@ void ui_body_println(int row, uint16_t color, const char *fmt, ...)
  * ~180ms total, 8 frames. */
 void ui_slide_transition(ui_draw_fn build_new, int direction)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     if (!build_new) return;
 
     /* Previously two 54 KB framebuffers were static BSS — 108 KB of
@@ -360,7 +360,7 @@ void ui_slide_transition(ui_draw_fn build_new, int direction)
  * rotated in 45° steps. */
 void ui_spinner(int cx, int cy, uint16_t color)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t t = millis() / 100;
     int phase = (int)(t & 7);
 
@@ -383,7 +383,7 @@ void ui_spinner(int cx, int cy, uint16_t color)
 void ui_notify_slide(const char *title, const char *sub,
                      uint16_t color, uint32_t hold_ms)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     const int bw = SCR_W - 12;
     const int bh = 34;
     const int bx = 6;
@@ -443,7 +443,7 @@ void ui_notify_slide(const char *title, const char *sub,
 /* Ripple: expanding ring, 6 frames at 20ms = 120ms total. */
 void ui_ripple(int cx, int cy, uint16_t color)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     for (int r = 3; r < 24; r += 3) {
         d.drawCircle(cx, cy, r, color);
         delay(20);
@@ -475,7 +475,7 @@ static inline uint16_t hsv565(uint16_t hue, uint8_t sat, uint8_t val)
 
 void ui_waves(int cx, int cy, int max_radius, uint16_t base_color)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t t = millis() / 16;  /* logical tick */
 
     /* Central glow (3 concentric disks). */
@@ -538,7 +538,7 @@ static radar_blip_t s_blips[RADAR_BLIPS] = {0};
 
 void ui_radar(int cx, int cy, int radius, uint16_t color)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static float s_angle = 0;
     s_angle += 0.12f;
     if (s_angle > 6.28318f) s_angle -= 6.28318f;
@@ -594,7 +594,7 @@ void ui_radar(int cx, int cy, int radius, uint16_t color)
 /* ---- shared scan / connect screens ---- */
 void ui_scanning_indicator(const char *label, int found)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Corner radar animates every call for smoothness. */
     ui_radar(SCR_W - 11, BODY_Y + 8, 6, 0x07FF);
 
@@ -620,7 +620,7 @@ void ui_scanning_indicator(const char *label, int found)
 
 void ui_connecting_screen(const char *target)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     ui_clear_body();
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(4, BODY_Y + 2);
@@ -638,7 +638,7 @@ void ui_connecting_screen(const char *target)
 /* ---- hex data stream ---- */
 void ui_hexstream(int x, int y, int w, int h, uint16_t color)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static uint32_t s_phase = 0;
     s_phase += 2;
 
@@ -672,7 +672,7 @@ void ui_hexstream(int x, int y, int w, int h, uint16_t color)
 /* ---- glitch blocks ---- */
 void ui_glitch(int x, int y, int w, int h)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     static uint32_t s_last = 0;
     /* Occasional bursts only. */
     if ((esp_random() & 0xFF) > 40) {
@@ -696,7 +696,7 @@ void ui_glitch(int x, int y, int w, int h)
 /* ---- EQ bars ---- */
 void ui_eq_bars(int x, int y, int bar_w, int bar_h_max, uint16_t color)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* 5 bars, each with a smoothed random target. */
     static uint8_t level[5] = { 4, 7, 3, 8, 5 };
     static uint8_t target[5] = { 8, 3, 9, 4, 7 };
@@ -740,7 +740,7 @@ static inline uint16_t dim565(uint16_t c, uint8_t alpha)
 
 void ui_dashboard_chrome(const char *title, bool flash_now)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     uint32_t now = millis();
 
     /* Rate-limit flashes: ignore new triggers within 900ms of the
@@ -798,7 +798,7 @@ void ui_action_overlay_with_tick(const char *headline, const char *subtitle,
                                   uint32_t duration_ms,
                                   void (*tick_cb)(void *), void *cb_ctx)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Full-screen canvas — drawing into RAM eliminates the per-frame
      * fillScreen flash that the panel previously made visible. ~64 KB
      * transient alloc; freed at exit. */
@@ -968,7 +968,7 @@ static bool     mx_initialized = false;
 
 void ui_matrix_rain(int x, int y, int w, int h, uint16_t color)
 {
-    auto &d = M5Cardputer.Display;
+    auto &d = PoseidonDisplay;
     /* Font cell: 6×8 default. Column spacing ~6px, row spacing ~8. */
     int col_w = 6;
     int row_h = 8;
