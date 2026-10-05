@@ -216,6 +216,8 @@ static void draw_card_full(const menu_node_t *parent, int cursor, int slide_x)
     d.setTextColor(cursor < n - 1 ? T_ACCENT2 : T_DIM, T_BG);
     d.setCursor(SCR_W - 6, amid);
     d.print(">");
+
+    poseidon_content_show_selection(parent->label, item->label, item->hint);
 }
 
 /* Lightweight idle paint — only touches the parts of the card that
@@ -371,7 +373,9 @@ void carousel_run_submenu(const menu_node_t *parent)
             if (sel->action) {
                 Serial.printf("[FEAT_ENTER] %s\n", sel->label);
                 g_current_feature_item = sel;
+                poseidon_enter_ui(menu_action_is_chrome(sel->action));
                 sel->action();
+                poseidon_leave_ui();
                 g_current_feature_item = nullptr;
                 /* Defensive IR park — see menu.cpp comment. */
                 pinMode(44, OUTPUT); digitalWrite(44, HIGH);
@@ -399,7 +403,9 @@ void carousel_run_submenu(const menu_node_t *parent)
                 if (sel->action) {
                     Serial.printf("[FEAT_ENTER] %s\n", sel->label);
                     g_current_feature_item = sel;
+                    poseidon_enter_ui(menu_action_is_chrome(sel->action));
                     sel->action();
+                    poseidon_leave_ui();
                     g_current_feature_item = nullptr;
                     /* Defensive IR park — same as regular path. */
                     pinMode(44, OUTPUT); digitalWrite(44, HIGH);

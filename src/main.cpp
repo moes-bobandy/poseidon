@@ -118,7 +118,7 @@ void setup()
      * LoRa NSS (pulled high) and won't fight CC1101 GDO0 (input). */
     pinMode(5, INPUT_PULLUP);
 #endif
-    /* Internal ST7789 landscape (also used as dual-screen status stub). */
+    /* Internal ST7789 landscape. On a dual build this panel is the menu. */
     M5Cardputer.Display.setRotation(1);
 #if !POSEIDON_DUAL_SCREEN
     PoseidonDisplay.setRotation(1);  /* landscape, keyboard at the bottom */
@@ -153,10 +153,6 @@ void setup()
     else            Serial.println("[POSEIDON] sd absent");
 #if POSEIDON_DUAL_SCREEN
     poseidon_lcd_resume_after_bus();
-    if (poseidon_dual_ok()) {
-        poseidon_dual_status_stub(sd_is_mounted() ? "SD ok" : "SD absent",
-                                  "UI on EXT ILI9341");
-    }
 #endif
 
     /* Load persisted sound settings + set speaker volume. */
@@ -220,15 +216,44 @@ void setup()
 #endif
 
     /* In KERBEROS key mode, skip the splash keypress-wait so the FIDO
-     * transport is serviced immediately after enumeration. */
-    if (!kerb_boot_key_mode()) ui_splash();
+     * transport is serviced immediately after enumeration.
+     * Dual: splash is content (external ILI9341). The menu that follows
+     * is the internal ST7789. */
+    if (!kerb_boot_key_mode()) {
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+        /* Splash owns the external panel. Keep the internal panel on
+         * the same theme so it is not a status stub during boot. */
+        if (poseidon_dual_ok()) {
+            auto &m = poseidon_menu();
+            m.fillScreen(T_BG);
+            m.setTextColor(T_ACCENT, T_BG);
+            m.setTextSize(2);
+            m.setCursor(16, 48);
+            m.print("POSEIDON");
+            m.setTextSize(1);
+            m.setTextColor(T_DIM, T_BG);
+            m.setCursor(16, 72);
+            m.print("menu");
+        }
+#endif
+        ui_splash();
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_MENU);
+#endif
+    }
 }
 
 void loop()
 {
     /* KERBEROS key mode: run the FIDO key directly. It owns the loop and
      * reboots back to normal mode on exit, so this does not fall through. */
-    if (kerb_boot_key_mode()) feat_kerberos();
+    if (kerb_boot_key_mode()) {
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+#endif
+        feat_kerberos();
+    }
     menu_run();
     /* menu_run only returns on a quit — rare. Fall through to a
      * quiescent poll loop so the device doesn't deadlock. */

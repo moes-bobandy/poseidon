@@ -176,6 +176,11 @@ extern void feat_theme_picker(void);
 extern void feat_sfx_settings(void);
 extern void feat_ambient_preview(void);
 extern void feat_menu_style_toggle(void);
+
+bool menu_action_is_chrome(menu_action_fn fn)
+{
+    return fn == feat_theme_picker || fn == feat_menu_style_toggle;
+}
 extern void feat_screensaver_toggle(void);
 extern void feat_screensaver_picker(void);
 /* extern void feat_ota_update(void); — REMOVED 2026-05-27 */
@@ -1243,6 +1248,7 @@ static void draw_menu(const menu_node_t *parent, int cursor)
                 d.print(sel->hint);
             }
         }
+        poseidon_content_show_selection(parent->label, sel->label, sel->hint);
     }
 }
 
@@ -1326,6 +1332,15 @@ static void slide_to(const menu_node_t *p, int c, int dir) {
 
 #define FOOTER_HINTS "letter=go  ;/.=move  ENTER=sel  ==info  `=back"
 
+/* Theme picker and layout toggle stay on the menu panel. Every other
+ * action is a feature and draws on the content panel. */
+static void invoke_feature(const menu_node_t *sel)
+{
+    poseidon_enter_ui(menu_action_is_chrome(sel->action));
+    sel->action();
+    poseidon_leave_ui();
+}
+
 static void run_submenu(const menu_node_t *parent)
 {
     /* Style dispatch — when the user has selected the carousel layout
@@ -1395,7 +1410,7 @@ static void run_submenu(const menu_node_t *parent)
                               sel->label, (unsigned)heap_free_internal(),
                               (unsigned)hb_reclaimed);
                 g_current_feature_item = sel;
-                sel->action();
+                invoke_feature(sel);
                 g_current_feature_item = nullptr;
                 /* Defensive IR park — IR features should self-park HIGH
                  * but if any path skips that, the LED stays glowing.
@@ -1439,7 +1454,7 @@ static void run_submenu(const menu_node_t *parent)
                                       ch->label, (unsigned)heap_free_internal(),
                                       (unsigned)hb_reclaimed);
                         g_current_feature_item = ch;
-                        ch->action();
+                        invoke_feature(ch);
                         g_current_feature_item = nullptr;
                         /* Defensive IR park — same as above. */
                         pinMode(44, OUTPUT); digitalWrite(44, HIGH);

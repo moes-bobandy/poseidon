@@ -56,6 +56,17 @@ void ui_init(void)
     d.fillScreen(T_BG);
     d.setTextWrap(false, false);
     d.setTextSize(1);
+#if POSEIDON_DUAL_SCREEN
+    /* Boot surface is the menu panel. Paint the content panel with the
+     * same theme background so EXT is not a second palette or a stub. */
+    if (poseidon_dual_ok()) {
+        auto &c = poseidon_content();
+        c.fillScreen(T_BG);
+        c.setTextWrap(false, false);
+        c.setTextSize(1);
+        c.setTextDatum(top_left);
+    }
+#endif
 }
 
 static uint32_t s_last_clear = 0;

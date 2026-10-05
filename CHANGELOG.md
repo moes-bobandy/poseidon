@@ -6,7 +6,13 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-(empty — new work since 0.6.8 lands here)
+### Changed
+
+- **Dual-screen routing v1.** On `cardputer-dual` / `cardputer-dual-launcher`
+  the menu, carousel, and theme picker stay on the internal ST7789 (240×135).
+  Splash and feature screens draw on the external ILI9341 at native 320×240.
+  Both panels use the active theme from `theme.h`. Stock `cardputer` builds
+  are unchanged: menu and content are both `M5Cardputer.Display`.
 
 ## [0.6.8] - 2026-07-03
 

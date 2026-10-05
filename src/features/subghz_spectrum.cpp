@@ -770,7 +770,13 @@ static void run_persistence(const freq_range_t &range)
         for (int gy = 0; gy < rows; ++gy) {
             uint8_t *grow = &grid[gy * GW];
             int py = GY + gy * cell_h;
+            /* SCR_W is a runtime value on the dual-screen build (320 on
+             * content). The scanline never exceeds the panel width. */
+#if POSEIDON_DUAL_SCREEN
+            static uint16_t line[320];
+#else
             static uint16_t line[SCR_W];
+#endif
             for (int x = 0; x < GW; ++x) {
                 int v = grow[x]; if (v > PMAX) v = PMAX;
                 line[x] = pal[v];
@@ -812,7 +818,11 @@ static void run_blip_sonar(const freq_range_t &range)
     static contact_t cts[MAX_CONTACTS];
     for (int i = 0; i < MAX_CONTACTS; ++i) cts[i].active = 0;
 
+#if POSEIDON_DUAL_SCREEN
+    static float floor_ema[320];
+#else
     static float floor_ema[SCR_W];
+#endif
     for (int i = 0; i < BINS; ++i) floor_ema[i] = -110.0f;
     bool warm = false;
     int  warm_sweeps = 0;
