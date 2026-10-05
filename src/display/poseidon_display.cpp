@@ -67,6 +67,15 @@ void poseidon_enter_ui(bool menu_chrome)
     s_surface_restore = s_surface;
     poseidon_set_surface(menu_chrome ? POSEIDON_SURFACE_MENU
                                      : POSEIDON_SURFACE_CONTENT);
+    /* Feature widgets still use the 240×135 grid. Clear the native
+     * 320×240 panel to the active theme first so the unused region is
+     * theme background, not a black letterbox or a stale frame. */
+    if (!menu_chrome && s_ext_ok && s_surface == POSEIDON_SURFACE_CONTENT) {
+        g_ext_display.setTextDatum(top_left);
+        g_ext_display.setTextWrap(false, false);
+        g_ext_display.setTextSize(1);
+        g_ext_display.fillScreen(theme().bg);
+    }
 }
 
 void poseidon_leave_ui(void)
@@ -212,7 +221,7 @@ bool poseidon_dual_begin(void)
     s_ext_ok = true;
     Serial.printf("[dual] ILI9341 OK %dx%d — content on EXT, menu on INT "
                   "(SPI3 CS5 DC6 RST3)\n",
-                  g_ext_display.width(), g_ext_display.height());
+                  (int)g_ext_display.width(), (int)g_ext_display.height());
     return true;
 }
 

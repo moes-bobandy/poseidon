@@ -18,18 +18,16 @@
 #define COL_MAGENTA  0xF81F
 
 /* ---- display geometry ----
- * Stock and the menu surface stay 240×135.
- * Dual content (external ILI9341 up, surface = content) is native
- * 320×240. SCR_W / SCR_H follow the active surface in that build
- * only, so single-screen layouts stay compile-time 240×135.
+ * Widget grid is 240×135 on every build. Feature and menu code sizes
+ * buffers and row counts from these constants, so they stay literals.
+ *
+ * Dual content panel is still native 320×240 (see poseidon_view_w/h).
+ * Splash and the menu's content card use that full size. Feature entry
+ * clears the external panel to the active theme, so the area outside
+ * this grid is theme background rather than the Phase-1 black letterbox.
  */
-#if POSEIDON_DUAL_SCREEN
-#define SCR_W poseidon_view_w()
-#define SCR_H poseidon_view_h()
-#else
 #define SCR_W 240
 #define SCR_H 135
-#endif
 #define STATUS_H 12
 #define FOOTER_H 10
 #define BODY_Y   (STATUS_H)
