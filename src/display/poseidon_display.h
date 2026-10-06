@@ -69,6 +69,15 @@ void poseidon_content_show_selection(const char *parent,
                                      const char *label,
                                      const char *hint);
 
+/* Full-panel theme ambient on the external display. No-op on stock,
+ * when the panel is down, while a feature owns content, or when the
+ * active theme does not paint ambient. */
+void poseidon_content_ambient_tick(void);
+
+/* Run fn with PoseidonDisplay / SCR_* aimed at the content panel.
+ * Restores the previous surface. Stock builds just call fn. */
+void poseidon_while_content(void (*fn)(void));
+
 /* Width/height of the active surface. Menu is 240×135. Content is
  * 320×240 when the external panel came up, else 240×135. */
 int poseidon_view_w(void);
@@ -90,6 +99,8 @@ inline poseidon_surface_t poseidon_surface(void) { return POSEIDON_SURFACE_MENU;
 inline void poseidon_enter_ui(bool) {}
 inline void poseidon_leave_ui(void) {}
 inline void poseidon_content_show_selection(const char *, const char *, const char *) {}
+inline void poseidon_content_ambient_tick(void) {}
+inline void poseidon_while_content(void (*fn)(void)) { if (fn) fn(); }
 inline int poseidon_view_w(void) { return 240; }
 inline int poseidon_view_h(void) { return 135; }
 

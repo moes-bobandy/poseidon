@@ -137,9 +137,23 @@ static void amb_matrix(int x, int y, int w, int h)
     ui_matrix_rain(x, y, w, h, T_FG);
 }
 
+bool ui_ambient_paints(void)
+{
+    if (!ui_ambient_enabled()) return false;
+    switch (theme_current_id()) {
+    case THEME_POSEIDON:
+    case THEME_MATRIX:
+    case THEME_SYNTHWAVE:
+    case THEME_PHANTOM:
+        return true;
+    default:
+        return false;
+    }
+}
+
 void ui_ambient_tick(int x, int y, int w, int h)
 {
-    if (!ui_ambient_enabled()) return;
+    if (!ui_ambient_paints()) return;
     if (w <= 0 || h <= 0)      return;
     switch (theme_current_id()) {
     case THEME_POSEIDON:  amb_poseidon(x, y, w, h); break;

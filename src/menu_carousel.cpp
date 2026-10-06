@@ -102,7 +102,8 @@ static void draw_card_full(const menu_node_t *parent, int cursor, int slide_x)
     /* Body background + ambient layer underneath. The carousel doesn't
      * piggyback on draw_menu's hook, so we wire ambient ourselves. */
     d.fillRect(0, BODY_Y, SCR_W, BODY_H, T_BG);
-    ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
+    if (!poseidon_dual_ok())
+        ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
 
     /* Title bar: parent name on the left, "N / TOTAL" position on the
      * right in magenta. Matches terminal-mode aesthetics. */
@@ -266,16 +267,21 @@ static void draw_card_anim(const menu_node_t *parent, int cursor)
     /* Clear both strips back to T_BG, then paint ambient — clipped per
      * strip so the ambient mote/grid/packet positions stay computed
      * against the FULL card bounds (otherwise motes would loop in a
-     * strip-sized box and the animation would feel cramped). */
-    d.fillRect(amb_x, amb_top_y, amb_w, amb_top_h, T_BG);
-    d.setClipRect(amb_x, amb_top_y, amb_w, amb_top_h);
-    ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
+     * strip-sized box and the animation would feel cramped).
+     * Dual builds play that motion on the external panel instead. */
+    if (poseidon_dual_ok()) {
+        poseidon_content_ambient_tick();
+    } else {
+        d.fillRect(amb_x, amb_top_y, amb_w, amb_top_h, T_BG);
+        d.setClipRect(amb_x, amb_top_y, amb_w, amb_top_h);
+        ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
 
-    d.fillRect(amb_x, amb_bot_y, amb_w, amb_bot_h, T_BG);
-    d.setClipRect(amb_x, amb_bot_y, amb_w, amb_bot_h);
-    ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
+        d.fillRect(amb_x, amb_bot_y, amb_w, amb_bot_h, T_BG);
+        d.setClipRect(amb_x, amb_bot_y, amb_w, amb_bot_h);
+        ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
 
-    d.clearClipRect();
+        d.clearClipRect();
+    }
 
     /* Repaint just the pulsing outer ring of the badge. The fill,
      * inner ring, and icon stay where they are. */

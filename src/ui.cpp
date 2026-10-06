@@ -970,7 +970,13 @@ void ui_action_overlay_with_tick(const char *headline, const char *subtitle,
  *   - advances head down; resets when off-screen
  * Glyph pool: printable katakana-ish via random printable chars.
  */
+/* Stock rain covers the 240-wide panel (20×6). Dual content is 320
+ * wide, so the external ambient needs enough columns to span it. */
+#if POSEIDON_DUAL_SCREEN
+#define MATRIX_COLS 54
+#else
 #define MATRIX_COLS 20
+#endif
 static int8_t  mx_head[MATRIX_COLS];      /* -1 = inactive */
 static uint8_t mx_speed[MATRIX_COLS];
 static char    mx_glyph[MATRIX_COLS];

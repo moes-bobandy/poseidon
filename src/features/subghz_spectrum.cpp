@@ -50,12 +50,21 @@ static void run_bar_spectrum(const freq_range_t &range)
      * Plus EMA smoothing on RSSI values so bars don't jitter between
      * reads of the same signal (RSSI is noisy at ~1 dB precision). */
     auto &d = PoseidonDisplay;
-    const int GX = 24, GY = BODY_Y + 14, GW = SCR_W - 30, GH = BODY_H - 30;
+    const int GX = 24, GY = BODY_Y + 14, GH = BODY_H - 30;
+#if POSEIDON_DUAL_SCREEN
+    float   smooth[POSEIDON_PANEL_MAX_W];
+    int8_t  peak[POSEIDON_PANEL_MAX_W];
+#else
+    float   smooth[232];
+    int8_t  peak[232];
+#endif
+    int GW = SCR_W - 30;
+    int bins_cap = (int)(sizeof(smooth) / sizeof(smooth[0]));
+    if (GW > bins_cap) GW = bins_cap;
+    if (GW < 8) GW = 8;
     int bins = GW;
     float step = (range.end - range.start) / bins;
 
-    float   smooth[232];
-    int8_t  peak[232];
     for (int i = 0; i < bins; ++i) { smooth[i] = -110.0f; peak[i] = -110; }
 
     M5Canvas canvas(&d);
@@ -180,32 +189,41 @@ static void run_bar_spectrum(const freq_range_t &range)
  * tight. So pick the best vertical resolution the heap allows and render
  * each ring row N px tall — it ALWAYS fills the screen, just chunkier if
  * memory is short. {rows, vscale} → rows*vscale ≈ 120 px plot height. */
-#define WF_MAX_BINS SCR_W
+#define WF_MAX_BINS POSEIDON_PANEL_MAX_W
 
 static void run_waterfall(const freq_range_t &range)
 {
     auto &d = PoseidonDisplay;
 
-    static const struct { int rows, vscale; } OPTS[] = { {120, 1}, {60, 2}, {40, 3} };
+    /* 135-tall stock plot is ~120 px. A 240-tall content panel needs a
+     * taller ring or the waterfall stops halfway down the ILI9341. */
+    struct wf_opt { int rows, vscale; };
+    static const wf_opt OPTS_SHORT[] = { {120, 1}, {60, 2}, {40, 3} };
+    static const wf_opt OPTS_TALL[]  = { {200, 1}, {100, 2}, {67, 3} };
+    const bool tall = SCR_H >= 200;
+    const wf_opt *opts = tall ? OPTS_TALL : OPTS_SHORT;
+    const unsigned nopts = 3;
     int rows = 0, vscale = 1;
+    const int GW = (SCR_W < WF_MAX_BINS) ? (int)SCR_W : (int)WF_MAX_BINS;
     uint16_t *ring = nullptr;
-    for (unsigned o = 0; o < sizeof(OPTS) / sizeof(OPTS[0]); ++o) {
+    for (unsigned o = 0; o < nopts; ++o) {
         ring = (uint16_t *)heap_caps_malloc(
-            (size_t)OPTS[o].rows * WF_MAX_BINS * sizeof(uint16_t), MALLOC_CAP_INTERNAL);
-        if (ring) { rows = OPTS[o].rows; vscale = OPTS[o].vscale; break; }
+            (size_t)opts[o].rows * (size_t)GW * sizeof(uint16_t), MALLOC_CAP_INTERNAL);
+        if (ring) { rows = opts[o].rows; vscale = opts[o].vscale; break; }
     }
     if (!ring) { ui_toast("OOM", T_BAD, 1000); return; }
 
-    const int GX = 0, GY = 13, GW = WF_MAX_BINS;
+    const int GX = 0, GY = 13;
     const int plot_h = rows * vscale;
     float step = (range.end - range.start) / GW;
-    memset(ring, 0, (size_t)rows * WF_MAX_BINS * sizeof(uint16_t));
+    memset(ring, 0, (size_t)rows * (size_t)GW * sizeof(uint16_t));
     int head = 0, count = 0;
     /* Per-column peak-hold with slow decay: the sweep sits on any bin only
      * briefly, so a short fob burst caught in one sweep would be a single stray
      * pixel. Holding the max per column (decaying 1/sweep) turns it into a
      * visible vertical streak. */
     static int8_t peakcol[WF_MAX_BINS];
+    if (GW > WF_MAX_BINS) { free(ring); return; }
     for (int i = 0; i < GW; ++i) peakcol[i] = -110;
 
     d.fillScreen(T_BG);
@@ -260,14 +278,22 @@ static void run_waveform(float freq)
     cc1101_set_rx();
 
     const int GX = 24;
-    const int GW = SCR_W - 30;
     const int RSSI_Y = BODY_Y + 14;
     const int RSSI_H = 40;
     const int GDO_Y  = RSSI_Y + RSSI_H + 8;
     const int GDO_H  = 20;
 
+#if POSEIDON_DUAL_SCREEN
+    int8_t  rssi_ring[POSEIDON_PANEL_MAX_W];
+    uint8_t gdo_ring[POSEIDON_PANEL_MAX_W];
+#else
     int8_t  rssi_ring[232];
     uint8_t gdo_ring[232];
+#endif
+    int GW = SCR_W - 30;
+    int ring_cap = (int)(sizeof(rssi_ring) / sizeof(rssi_ring[0]));
+    if (GW > ring_cap) GW = ring_cap;
+    if (GW < 8) GW = 8;
     memset(rssi_ring, -110, sizeof(rssi_ring));
     memset(gdo_ring, 0, sizeof(gdo_ring));
     int head = 0;

@@ -25,3 +25,7 @@ void ui_ambient_tick(int x, int y, int w, int h);
 
 bool ui_ambient_enabled(void);
 void ui_ambient_enabled_set(bool on);
+
+/* True when the active theme actually paints motion (E-INK and BLOOD
+ * stay still on purpose). */
+bool ui_ambient_paints(void);

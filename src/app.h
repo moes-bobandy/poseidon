@@ -18,16 +18,23 @@
 #define COL_MAGENTA  0xF81F
 
 /* ---- display geometry ----
- * Widget grid is 240×135 on every build. Feature and menu code sizes
- * buffers and row counts from these constants, so they stay literals.
- *
- * Dual content panel is still native 320×240 (see poseidon_view_w/h).
- * Splash and the menu's content card use that full size. Feature entry
- * clears the external panel to the active theme, so the area outside
- * this grid is theme background rather than the Phase-1 black letterbox.
+ * Stock builds: compile-time 240×135, same as the internal ST7789.
+ * Dual builds: SCR_W / SCR_H follow the active surface. Menu stays
+ * 240×135. Content (external ILI9341 up) is native 320×240 so feature
+ * chrome, clears, and HUDs fill the panel instead of a 240×135 island.
+ * POSEIDON_PANEL_MAX_* is the largest size a static scanline may hold.
  */
+#if POSEIDON_DUAL_SCREEN
+#define SCR_W poseidon_view_w()
+#define SCR_H poseidon_view_h()
+#define POSEIDON_PANEL_MAX_W 320
+#define POSEIDON_PANEL_MAX_H 240
+#else
 #define SCR_W 240
 #define SCR_H 135
+#define POSEIDON_PANEL_MAX_W 240
+#define POSEIDON_PANEL_MAX_H 135
+#endif
 #define STATUS_H 12
 #define FOOTER_H 10
 #define BODY_Y   (STATUS_H)

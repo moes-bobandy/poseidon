@@ -1084,6 +1084,12 @@ static int count_children(const menu_node_t *parent)
 static void draw_menu_anim(const menu_node_t *parent, int cursor)
 {
     if (!ui_ambient_enabled()) return;
+    /* Dual: motion belongs on the external panel, full 320×240.
+     * The internal menu keeps the last full paint. */
+    if (poseidon_dual_ok()) {
+        poseidon_content_ambient_tick();
+        return;
+    }
     auto &d = PoseidonDisplay;
     int n = count_children(parent);
     if (n <= 0) return;
@@ -1165,8 +1171,10 @@ static void draw_menu(const menu_node_t *parent, int cursor)
     /* Paint theme-aware ambient motion BEFORE menu chrome — rows draw
      * over the top with their own opaque background so they remain
      * readable. No-op when the user has disabled ambient via
-     * System -> Ambient. */
-    ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
+     * System -> Ambient. On a dual build this layer is the external
+     * panel (see draw_menu_anim); the internal menu stays chrome. */
+    if (!poseidon_dual_ok())
+        ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
 
     /* Title with count + scroll indicator. Title underline is a strategic
      * magenta splash — full body width, 2 px thick — so the cyberpunk

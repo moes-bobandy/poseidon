@@ -7,11 +7,15 @@
 #if POSEIDON_DUAL_SCREEN
 
 #include "theme.h"
+#include "ui_ambient.h"
 #include <string.h>
 
 /* Defined in ui.cpp. Invalidating here keeps the status-bar cache from
  * skipping the first paint after a surface switch. */
 extern void ui_status_invalidate(void);
+/* Argus skips pushImage when mood/x/y are unchanged. A content clear
+ * wipes the face, so the next feature entry must force a fresh push. */
+extern void argus_invalidate(void);
 
 LGFX_ILI9341 g_ext_display;
 static bool s_ext_ok = false;
@@ -67,15 +71,27 @@ void poseidon_enter_ui(bool menu_chrome)
     s_surface_restore = s_surface;
     poseidon_set_surface(menu_chrome ? POSEIDON_SURFACE_MENU
                                      : POSEIDON_SURFACE_CONTENT);
-    /* Feature widgets still use the 240×135 grid. Clear the native
-     * 320×240 panel to the active theme first so the unused region is
-     * theme background, not a black letterbox or a stale frame. */
+    /* Full native panel, then the feature draws at 320×240. Drop any
+     * clip a previous screen left behind so content cannot shrink into
+     * a corner. Argus must re-push after this clear. */
     if (!menu_chrome && s_ext_ok && s_surface == POSEIDON_SURFACE_CONTENT) {
         g_ext_display.setTextDatum(top_left);
         g_ext_display.setTextWrap(false, false);
         g_ext_display.setTextSize(1);
+        g_ext_display.clearClipRect();
         g_ext_display.fillScreen(theme().bg);
+        argus_invalidate();
     }
+}
+
+void poseidon_while_content(void (*fn)(void))
+{
+    if (!fn) return;
+    if (!s_ext_ok) { fn(); return; }
+    poseidon_surface_t prev = s_surface;
+    s_surface = POSEIDON_SURFACE_CONTENT;
+    fn();
+    s_surface = prev;
 }
 
 void poseidon_leave_ui(void)
@@ -148,6 +164,13 @@ void poseidon_content_show_selection(const char *parent,
     s_sel_hint   = hint;
     s_sel_theme  = theme_id;
 
+    /* Moving themes paint the external panel themselves. A static card
+     * would cover that motion. */
+    if (ui_ambient_paints()) {
+        poseidon_content_ambient_tick();
+        return;
+    }
+
     auto &d = g_ext_display;
     const int W = 320;
     const int H = 240;
@@ -193,6 +216,42 @@ void poseidon_content_show_selection(const char *parent,
     d.print("menu on internal    feature opens here");
 }
 
+static void content_caption(lgfx::LGFX_Device &d, int W, int H)
+{
+    const uint16_t bg = theme().footer_bg;
+    const uint16_t dim = theme().dim;
+    d.fillRect(0, H - 22, W, 22, bg);
+    d.drawFastHLine(0, H - 22, W, theme().rule);
+    d.setTextSize(1);
+    d.setTextDatum(top_left);
+    print_fit(d, 8, H - 14, W / 2 - 12, s_sel_label ? s_sel_label : "POSEIDON",
+              theme().fg, bg);
+    print_fit(d, W / 2, H - 14, W / 2 - 8, s_sel_hint ? s_sel_hint : "",
+              dim, bg);
+}
+
+void poseidon_content_ambient_tick(void)
+{
+    if (!s_ext_ok) return;
+    if (s_surface == POSEIDON_SURFACE_CONTENT) return;
+    if (!ui_ambient_paints()) return;
+
+    poseidon_surface_t prev = s_surface;
+    s_surface = POSEIDON_SURFACE_CONTENT;
+
+    auto &d = g_ext_display;
+    const int W = poseidon_view_w();
+    const int H = poseidon_view_h();
+    d.clearClipRect();
+    d.setTextWrap(false, false);
+    d.setTextSize(1);
+    d.fillScreen(theme().bg);
+    ui_ambient_tick(0, 0, W, H - 22);
+    content_caption(d, W, H);
+
+    s_surface = prev;
+}
+
 bool poseidon_dual_begin(void)
 {
     if (s_ext_ok) return true;
@@ -212,7 +271,10 @@ bool poseidon_dual_begin(void)
     delay(50);
     /* Landscape 320×240 (panel memory is 240×320, offset_rotation 4). */
     g_ext_display.setRotation(3);
-    g_ext_display.setSwapBytes(true);
+    /* Leave _swapBytes false, matching the internal ST7789. Argus and
+     * the other RGB565 sprites are already byte-swapped for that path.
+     * setSwapBytes(true) here double-swaps them and the face turns to
+     * color noise. */
     g_ext_display.setTextDatum(top_left);
     g_ext_display.setTextWrap(false, false);
     g_ext_display.setTextSize(1);

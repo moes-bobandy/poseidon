@@ -145,7 +145,8 @@ void feat_uart_shell(void)
     String cur = "> ";
     String cmd;
     constexpr int MAX_LINES = 256;
-    constexpr int ROWS = (BODY_H) / 10;
+    /* BODY_H follows the content panel on a dual build. */
+    const int ROWS = (BODY_H) / 10;
 
     auto render = [&]() {
         int total = (int)lines.size() + 1;      /* +1 for cur */
@@ -260,7 +261,7 @@ void feat_tcp_tunnel(void)
     String cmd;
     std::deque<String> log;
     constexpr int LOG_MAX = 128;
-    constexpr int ROWS = BODY_H / 10;
+    const int ROWS = BODY_H / 10;
 
     auto render = [&]() {
         int y = BODY_Y + 14;

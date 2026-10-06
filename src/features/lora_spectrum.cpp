@@ -245,11 +245,20 @@ static bool run_waterfall(SX1262 &radio, const lora_range_t &range)
 static void run_scope(SX1262 &radio, float freq)
 {
     auto &d = PoseidonDisplay;
-    const int GX = 24, GY = BODY_Y + 18, GW = SCR_W - 30, GH = BODY_H - 46;
+    const int GX = 24, GY = BODY_Y + 18, GH = BODY_H - 46;
 
     /* Retune only once per frequency change. */
     float cur_freq = -1;
-    int8_t hist[232]; memset(hist, -130, sizeof(hist));
+#if POSEIDON_DUAL_SCREEN
+    int8_t hist[POSEIDON_PANEL_MAX_W];
+#else
+    int8_t hist[232];
+#endif
+    int GW = SCR_W - 30;
+    int hist_cap = (int)(sizeof(hist) / sizeof(hist[0]));
+    if (GW > hist_cap) GW = hist_cap;
+    if (GW < 8) GW = 8;
+    memset(hist, -130, (size_t)GW);
     int hp = 0;
 
     ui_force_clear_body();
