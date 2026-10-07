@@ -101,13 +101,21 @@ void poseidon_leave_ui(void)
 
 int poseidon_view_w(void)
 {
-    if (s_surface == POSEIDON_SURFACE_CONTENT && s_ext_ok) return 320;
+    if (s_surface == POSEIDON_SURFACE_CONTENT && s_ext_ok) {
+        int w = g_ext_display.width();
+        if (w > 0) return w;
+        return 320;
+    }
     return 240;
 }
 
 int poseidon_view_h(void)
 {
-    if (s_surface == POSEIDON_SURFACE_CONTENT && s_ext_ok) return 240;
+    if (s_surface == POSEIDON_SURFACE_CONTENT && s_ext_ok) {
+        int h = g_ext_display.height();
+        if (h > 0) return h;
+        return 240;
+    }
     return 135;
 }
 
@@ -269,8 +277,20 @@ bool poseidon_dual_begin(void)
         return false;
     }
     delay(50);
-    /* Landscape 320×240 (panel memory is 240×320, offset_rotation 4). */
-    g_ext_display.setRotation(3);
+    /* Panel memory is 240×320 with offset_rotation 4 (a mirror bit).
+     * User rotation 3 keeps that mirror, so logical (0,0) lands on the
+     * glass's upper-right and a 240×135 draw parks there. Rotation 7
+     * cancels the mirror and is landscape 320×240 with origin at the
+     * top-left. Fall through the other rotations if the driver reports
+     * a smaller window. */
+    g_ext_display.setRotation(7);
+    if (g_ext_display.width() < 320 || g_ext_display.height() < 240) {
+        for (int r = 0; r < 8; ++r) {
+            g_ext_display.setRotation((uint8_t)r);
+            if (g_ext_display.width() >= 320 && g_ext_display.height() >= 240)
+                break;
+        }
+    }
     /* Leave _swapBytes false, matching the internal ST7789. Argus and
      * the other RGB565 sprites are already byte-swapped for that path.
      * setSwapBytes(true) here double-swaps them and the face turns to

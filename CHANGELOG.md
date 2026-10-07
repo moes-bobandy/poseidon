@@ -8,6 +8,12 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Dual field fixes.** Argus on the ILI9341 is pushed as host-order
+  RGB565 (the pre-swapped ST7789 bytes were color noise on that panel).
+  External landscape rotation no longer mirrors (0,0) into the upper-right.
+  Content width/height follow the panel. Fn+`;` / Fn+`.` on the TCA8418
+  (Adv up/down arrows) change speaker volume without taking bare `;` / `.`
+  away from the menu.
 - **Dual-screen routing v1.** On `cardputer-dual` / `cardputer-dual-launcher`
   the menu, carousel, and theme picker stay on the internal ST7789 (240×135).
   Splash, features, ambience, and the screensaver draw on the external
