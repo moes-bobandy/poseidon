@@ -14,7 +14,7 @@
 #include "version.h"
 #include "serial_test.h"
 #include "heap_budget.h"
-#include "utility/Keyboard/KeyboardReader/TCA8418.h"
+#include "kbd_tca8418.h"
 
 /* Strong override: tell Arduino-ESP32 core that BT is in use. Without
  * this the core calls esp_bt_controller_mem_release(ESP_BT_MODE_BTDM)
@@ -110,7 +110,7 @@ void setup()
     M5Cardputer.begin(cfg, true);
     /* Safety belt: force the I2C (TCA8418) keyboard reader even if
      * autodetect picked K126, so the driver never grabs G3-G7. */
-    M5Cardputer.Keyboard.begin(std::make_unique<TCA8418KeyboardReader>());
+    M5Cardputer.Keyboard.begin(std::make_unique<PoseidonTcaReader>());
 #if !POSEIDON_DUAL_SCREEN
     /* Release pin 5 — LoRa hat uses it as NSS (needs HIGH to deselect),
      * Hydra hat uses it as CC1101 GDO0 (input). Since we don't know
