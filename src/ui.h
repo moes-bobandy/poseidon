@@ -72,6 +72,10 @@ void ui_ripple(int cx, int cy, uint16_t color);
  * advances internally via millis(). Draws into a given rect. Caller
  * is responsible for clearing the rect before the first call. */
 void ui_matrix_rain(int x, int y, int w, int h, uint16_t color);
+/* Optional offscreen target for ui_matrix_rain. Null draws on
+ * PoseidonDisplay. Screensaver sets this so glyphs stay off the glass
+ * until the frame is pushed. */
+void ui_matrix_rain_target(lgfx::LovyanGFX *dst);
 
 /* Radial wave pulse animation — 3 expanding glow rings + sweeping
  * arcs at (cx, cy). Ported from Evil-Cardputer's NTLM waiting anim.

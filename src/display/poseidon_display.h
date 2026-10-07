@@ -70,9 +70,25 @@ void poseidon_content_show_selection(const char *parent,
                                      const char *hint);
 
 /* Full-panel theme ambient on the external display. No-op on stock,
- * when the panel is down, while a feature owns content, or when the
- * active theme does not paint ambient. */
+ * when the panel is down, or while a feature owns content. Every
+ * theme, including ones whose ambient painter is a no-op, still gets
+ * a full 320×240 background from the card paint. */
 void poseidon_content_ambient_tick(void);
+
+/* Blood-sized card on the external panel (320×240). body may be null.
+ * Draws chrome once. Later ambient ticks only touch the stored gaps. */
+void poseidon_ext_paint_card(const char *parent, const char *title,
+                             const char *hint, const char *body);
+/* Clip-rect ambience inside the gaps from the last card paint. */
+void poseidon_ext_ambient_gaps(void);
+/* Drop the selection cache so the next show_selection repaints EXT. */
+void poseidon_ext_invalidate(void);
+/* Close any open EXT SPI transaction and park CS. Call before NVS
+ * or any other long stall so a flash write cannot land mid-RAMWR. */
+void poseidon_ext_bus_idle(void);
+/* Re-enter the existing poseidon_dual_begin path when state says the
+ * panel is wedged. No separate init sequence. */
+bool poseidon_ext_recover_if_needed(void);
 
 /* Run fn with PoseidonDisplay / SCR_* aimed at the content panel.
  * Restores the previous surface. Stock builds just call fn. */
@@ -100,6 +116,11 @@ inline void poseidon_enter_ui(bool) {}
 inline void poseidon_leave_ui(void) {}
 inline void poseidon_content_show_selection(const char *, const char *, const char *) {}
 inline void poseidon_content_ambient_tick(void) {}
+inline void poseidon_ext_paint_card(const char *, const char *, const char *, const char *) {}
+inline void poseidon_ext_ambient_gaps(void) {}
+inline void poseidon_ext_invalidate(void) {}
+inline void poseidon_ext_bus_idle(void) {}
+inline bool poseidon_ext_recover_if_needed(void) { return false; }
 inline void poseidon_while_content(void (*fn)(void)) { if (fn) fn(); }
 inline int poseidon_view_w(void) { return 240; }
 inline int poseidon_view_h(void) { return 135; }

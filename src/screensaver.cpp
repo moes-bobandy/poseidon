@@ -24,12 +24,122 @@
 #include "app.h"
 #include "ui.h"
 #include "input.h"
+#include "heap_budget.h"
 #include <M5Cardputer.h>
+#include <lgfx/v1/LGFX_Sprite.hpp>
 #include <Preferences.h>
 #include <esp_random.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+
+/* EXT frames are composed here and pushed once. A per-frame fillScreen
+ * on the ILI9341 (CPU SPI, DMA off) is the rapid blink. 320×240 RGB565
+ * is 153600 bytes. Taken only when the largest free block still leaves
+ * the 48 KB NimBLE gate. Freed before the saver returns. */
+static lgfx::LGFX_Sprite *s_ss = nullptr;
+static const size_t SS_SPRITE_BYTES = 320u * 240u * 2u;
+static const size_t SS_NIMBLE_GATE  = 48u * 1024u;
+
+struct ss_rect { int x, y, w, h; };
+static ss_rect s_dirty[24];
+static int s_dirty_n = 0;
+static bool s_ss_primed = false;
+
+static void ss_pause(uint32_t ms)
+{
+    void (*hold)(uint32_t) = delay;
+    hold(ms);
+}
+
+static void ss_acquire(void)
+{
+    s_ss = nullptr;
+    s_dirty_n = 0;
+    s_ss_primed = false;
+    if (!poseidon_dual_ok()) return;
+    size_t largest = heap_largest_internal();
+    if (largest < SS_SPRITE_BYTES + SS_NIMBLE_GATE) {
+        Serial.printf("[ss] dirty-rect fallback largest=%u need=%u\n",
+                      (unsigned)largest, (unsigned)(SS_SPRITE_BYTES + SS_NIMBLE_GATE));
+        return;
+    }
+    s_ss = new lgfx::LGFX_Sprite(&poseidon_content());
+    if (!s_ss) return;
+    s_ss->setPsram(false);
+    s_ss->setColorDepth(16);
+    if (!s_ss->createSprite(320, 240)) {
+        delete s_ss;
+        s_ss = nullptr;
+        Serial.printf("[ss] sprite alloc failed largest=%u\n", (unsigned)largest);
+        return;
+    }
+    ui_matrix_rain_target(s_ss);
+    Serial.printf("[ss] sprite %u bytes, largest was %u\n",
+                  (unsigned)SS_SPRITE_BYTES, (unsigned)largest);
+}
+
+static void ss_release(void)
+{
+    ui_matrix_rain_target(nullptr);
+    if (s_ss) {
+        s_ss->deleteSprite();
+        delete s_ss;
+        s_ss = nullptr;
+    }
+    s_dirty_n = 0;
+    s_ss_primed = false;
+    if (poseidon_dual_ok()) poseidon_ext_bus_idle();
+}
+
+static void ss_dirty(int x, int y, int w, int h)
+{
+    if (s_ss || s_dirty_n >= 24 || w <= 0 || h <= 0) return;
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    s_dirty[s_dirty_n].x = x;
+    s_dirty[s_dirty_n].y = y;
+    s_dirty[s_dirty_n].w = w;
+    s_dirty[s_dirty_n].h = h;
+    s_dirty_n++;
+}
+
+static lgfx::LovyanGFX &ss_canvas(void)
+{
+    if (s_ss) return *s_ss;
+    return poseidon_disp();
+}
+
+#undef PoseidonDisplay
+#define PoseidonDisplay ss_canvas()
+
+static void ss_clear(lgfx::LovyanGFX &d)
+{
+    if (s_ss || !poseidon_dual_ok() || !s_ss_primed) {
+        d.fillScreen(T_BG);
+        s_ss_primed = true;
+        s_dirty_n = 0;
+        return;
+    }
+    /* Dirty-rect fallback: erase only what the previous frame marked.
+     * No per-frame fillScreen on the ILI9341. */
+    for (int i = 0; i < s_dirty_n; ++i)
+        d.fillRect(s_dirty[i].x, s_dirty[i].y, s_dirty[i].w, s_dirty[i].h, T_BG);
+    s_dirty_n = 0;
+}
+
+static void ss_delay(uint32_t ms)
+{
+    if (s_ss) s_ss->pushSprite(&poseidon_content(), 0, 0);
+    else if (poseidon_dual_ok() && s_dirty_n == 0) {
+        /* Savers that redraw the whole scene mark the interior band
+         * so the next tick erases that band only. */
+        int w = SCR_W > 0 ? SCR_W : 320;
+        int h = SCR_H > 24 ? SCR_H - 24 : 1;
+        ss_dirty(0, 12, w, h);
+    }
+    ss_pause(ms);
+}
 
 extern void ui_matrix_rain(int x, int y, int w, int h, uint16_t color);
 
@@ -183,7 +293,7 @@ static void wd_spawn_ap(void)
 static void wd_render(void)
 {
     auto &d = PoseidonDisplay;
-    d.fillScreen(T_BG);
+    ss_clear(d);
     d.setTextColor(T_ACCENT, T_BG);
     d.setCursor(2, 2); d.print("WARDRIVE.cinema");
     char hud[24];
@@ -283,7 +393,7 @@ static void run_wardrive_cinema(void)
     while (input_poll() == PK_NONE) {
         wd_tick(millis());
         wd_render();
-        delay(45);
+        ss_delay(45);
     }
 }
 
@@ -292,10 +402,10 @@ static void run_wardrive_cinema(void)
 static void run_matrix_rain(void)
 {
     auto &d = PoseidonDisplay;
-    d.fillScreen(T_BG);
+    ss_clear(d);
     while (input_poll() == PK_NONE) {
         ui_matrix_rain(0, 0, SCR_W, SCR_H, T_FG);
-        delay(33);
+        ss_delay(33);
     }
 }
 
@@ -334,7 +444,7 @@ static void run_eink_breathing(void)
             eink_drift_y = -10 + (int)(esp_random() % 20);
         }
         uint16_t fade = blend565(T_BG, T_FG, brightness);
-        d.fillScreen(T_BG);
+        ss_clear(d);
         d.setTextSize(3);
         d.setTextColor(fade, T_BG);
         int tx = (SCR_W / 2) - 72 + eink_drift_x;
@@ -345,7 +455,7 @@ static void run_eink_breathing(void)
         d.drawFastHLine((SCR_W - tide_w) / 2, SCR_H - 8, tide_w, fade);
         d.setTextColor(T_DIM, T_BG);
         d.setCursor(2, SCR_H - 9); d.print("any key");
-        delay(60);
+        ss_delay(60);
     }
 }
 
@@ -377,7 +487,7 @@ static void run_deep_scan(void)
 
     while (input_poll() == PK_NONE) {
         uint32_t now = millis();
-        d.fillScreen(T_BG);
+        ss_clear(d);
 
         /* Header */
         d.setTextColor(T_ACCENT, T_BG);
@@ -442,7 +552,7 @@ static void run_deep_scan(void)
         /* Footer */
         d.setTextColor(T_DIM, T_BG);
         d.setCursor(2, SCR_H - 9); d.print("// any key to wake");
-        delay(50);
+        ss_delay(50);
     }
 }
 
@@ -479,7 +589,7 @@ static void run_port_scan(void)
 
     while (input_poll() == PK_NONE) {
         uint32_t now = millis();
-        d.fillScreen(T_BG);
+        ss_clear(d);
 
         /* Header */
         d.setTextColor(T_ACCENT, T_BG);
@@ -567,7 +677,7 @@ static void run_port_scan(void)
             hits[0] = h;
             if (hit_count < 8) hit_count++;
         }
-        delay(45);
+        ss_delay(45);
     }
 }
 
@@ -592,7 +702,7 @@ static const char *const HC_REVEALS[] = {
 static void run_hex_cascade(void)
 {
     auto &d = PoseidonDisplay;
-    d.fillScreen(T_BG);
+    ss_clear(d);
     static hc_col_t cols[HC_COLS];
     for (int c = 0; c < HC_COLS; ++c) {
         cols[c].y = -(int)(esp_random() % HC_ROWS);
@@ -607,7 +717,7 @@ static void run_hex_cascade(void)
         uint32_t now = millis();
         /* Mostly black bg with slight fade-trail effect — fillScreen each tick
          * is cheap; trail is implicit via past glyph erasure. */
-        d.fillScreen(T_BG);
+        ss_clear(d);
 
         for (int c = 0; c < HC_COLS; ++c) {
             hc_col_t &col = cols[c];
@@ -660,7 +770,7 @@ static void run_hex_cascade(void)
         d.setTextColor(T_ACCENT2, T_BG);
         d.setCursor(SCR_W - 60, 2); d.print("// decoded");
         d.drawFastHLine(0, 11, SCR_W, T_DIM);
-        delay(60);
+        ss_delay(60);
     }
 }
 
@@ -709,7 +819,7 @@ static void run_terminal_crack(void)
 
     while (input_poll() == PK_NONE) {
         uint32_t now = millis();
-        d.fillScreen(T_BG);
+        ss_clear(d);
 
         /* Header */
         d.setTextColor(T_ACCENT, T_BG);
@@ -782,7 +892,7 @@ static void run_terminal_crack(void)
 
         d.setTextColor(T_DIM, T_BG);
         d.setCursor(2, SCR_H - 9); d.print("// any key");
-        delay(60);
+        ss_delay(60);
     }
 }
 
@@ -815,7 +925,7 @@ static void run_neural_arc(void)
 
     while (input_poll() == PK_NONE) {
         uint32_t now = millis();
-        d.fillScreen(T_BG);
+        ss_clear(d);
 
         /* Header */
         d.setTextColor(T_ACCENT, T_BG);
@@ -884,7 +994,7 @@ static void run_neural_arc(void)
 
         d.setTextColor(T_DIM, T_BG);
         d.setCursor(2, SCR_H - 9); d.print("// any key");
-        delay(45);
+        ss_delay(45);
     }
 }
 
@@ -908,7 +1018,7 @@ static void run_glitch_bsod(void)
 
     while (input_poll() == PK_NONE) {
         uint32_t now = millis();
-        d.fillScreen(T_BG);
+        ss_clear(d);
 
         /* Background scatter — sparse noise dots so the screen never feels totally dead. */
         for (int i = 0; i < 22; ++i) {
@@ -961,7 +1071,7 @@ static void run_glitch_bsod(void)
 
         d.setTextColor(T_DIM, T_BG);
         d.setCursor(2, SCR_H - 9); d.print("// any key");
-        delay(45);
+        ss_delay(45);
     }
 }
 
@@ -981,7 +1091,7 @@ static void run_tide_waves(void)
 
     while (input_poll() == PK_NONE) {
         uint32_t now = millis();
-        d.fillScreen(T_BG);
+        ss_clear(d);
 
         /* Header */
         d.setTextColor(T_ACCENT, T_BG);
@@ -1008,7 +1118,7 @@ static void run_tide_waves(void)
 
         d.setTextColor(T_DIM, T_BG);
         d.setCursor(2, SCR_H - 9); d.print("// any key");
-        delay(40);
+        ss_delay(40);
     }
 }
 
@@ -1050,14 +1160,22 @@ void screensaver_pick_set(int idx)
     if (p.begin("pscr", false)) { p.putChar("pick", (char)idx); p.end(); }
 }
 
+static void (*s_run_fn)(void) = nullptr;
+static void run_wrapped(void)
+{
+    ss_acquire();
+    if (s_run_fn) s_run_fn();
+    ss_release();
+}
+
 void screensaver_run_index(int idx)
 {
     load_settings();
     if (idx < 0 || idx >= POOL_N) return;
-    /* Dual: idle painters fill the external 320×240 panel. Stock
-     * poseidon_while_content is a direct call, so the only display
-     * is unchanged. */
-    poseidon_while_content(s_pool[idx].run);
+    /* Dual: compose off the ILI9341, then one push per frame. Stock
+     * has no external panel, so the painter draws straight to it. */
+    s_run_fn = s_pool[idx].run;
+    poseidon_while_content(run_wrapped);
     save_last(idx);
 }
 
@@ -1087,7 +1205,8 @@ bool screensaver_check_idle(void)
     else                                    idx = s_pick;
     if (idx < 0 || idx >= POOL_N) idx = 0;
 
-    poseidon_while_content(s_pool[idx].run);
+    s_run_fn = s_pool[idx].run;
+    poseidon_while_content(run_wrapped);
     save_last(idx);
     return true;
 }

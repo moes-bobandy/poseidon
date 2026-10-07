@@ -55,28 +55,39 @@ static uint8_t s_volume = 5;     /* 0..10 user-facing */
 static bool    s_mute = false;
 static bool    s_inited = false;
 
-static inline uint8_t user_to_m5(uint8_t u)
+/* ES8311 DAC volume, register 0x32 at I2C 0x18.
+ * Datasheet: 0.5 dB per count, 0xBF = 0 dB, 0x00 = -95.5 dB (mute).
+ * Levels 1..10 are even 3.5 dB steps from -31.5 dB to 0 dB
+ * (7 counts × 0.5 dB). The old linear map started at 0x20, so level 1
+ * was about -72 dB and only 8–10 were audible.
+ *
+ *   level   dB      reg
+ *   0       mute    0x00
+ *   1      -31.5    0x80
+ *   2      -28.0    0x87
+ *   3      -24.5    0x8E
+ *   4      -21.0    0x95
+ *   5      -17.5    0x9C
+ *   6      -14.0    0xA3
+ *   7      -10.5    0xAA
+ *   8       -7.0    0xB1
+ *   9       -3.5    0xB8
+ *   10       0.0    0xBF
+ *
+ * Speaker.setVolume stays at full scale for levels 1–10. A second
+ * software curve stacked on this table and crushed the low end. */
+static uint8_t es8311_dac_reg(uint8_t level)
 {
-    /* M5 speaker volume is 0..255. Map 0..10 exponentially so the low
-     * end doesn't just jump from silent to loud. */
-    if (u == 0) return 0;
-    static const uint8_t curve[11] = { 0, 8, 18, 32, 48, 72, 100, 140, 180, 220, 255 };
-    if (u > 10) u = 10;
-    return curve[u];
+    if (level == 0) return 0x00;
+    if (level > 10) level = 10;
+    return (uint8_t)(0xBF - (10 - level) * 7);
 }
 
 static void apply_volume(void)
 {
-    uint8_t v = s_mute ? 0 : user_to_m5(s_volume);
-    M5Cardputer.Speaker.setVolume(v);
-    /* Cardputer Adv speaker is an ES8311. Its DAC register stays at
-     * 0xBF (±0 dB) unless we write it, so software volume alone can
-     * sound locked. 0 = mute, 0xBF = full. Ignore a NACK on boards
-     * that do not have the codec. */
-    uint8_t reg = (s_mute || s_volume == 0)
-                      ? 0
-                      : (uint8_t)(0x20 + ((unsigned)s_volume * (0xBF - 0x20)) / 10);
-    M5.In_I2C.writeRegister8(0x18, 0x32, reg, 100000);
+    bool silent = s_mute || s_volume == 0;
+    M5Cardputer.Speaker.setVolume(silent ? 0 : 255);
+    M5.In_I2C.writeRegister8(0x18, 0x32, es8311_dac_reg(silent ? 0 : s_volume), 100000);
 }
 
 void sfx_init(void)

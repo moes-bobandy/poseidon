@@ -1276,80 +1276,26 @@ void ui_show_current_help(void)
     show_info(g_current_feature_item);
 }
 
-#if POSEIDON_DUAL_SCREEN
-/* Opaque info chrome drawn AFTER rain so glyphs never sit on the type.
- * EXT info views only: no selection-card footer, no "any key = back". */
-template<typename Disp>
-static void paint_ext_info_chrome(Disp &d, int W, int H,
-                                  const menu_node_t *item)
-{
-    const int chars = (W - 8) / 6;
-    d.setTextSize(1);
-    d.setTextDatum(top_left);
-    d.fillRect(0, 2, W, 22, T_BG);
-    d.setTextColor(T_ACCENT2, T_BG);
-    d.setCursor(4, 4);
-    d.printf("[%c] %s", toupper(item->hotkey), item->label);
-    d.drawFastHLine(4, 16, W - 8, T_ACCENT2);
-
-    d.fillRect(0, 20, W, 12, T_BG);
-    d.setTextColor(T_ACCENT, T_BG);
-    d.setCursor(4, 20);
-    d.printf("> %s", item->hint ? item->hint : "");
-
-    int y = 36;
-    if (item->info) {
-        const char *p = item->info;
-        while (*p && y < H - 14) {
-            int take = 0, last_space = -1;
-            int limit = chars > 8 ? chars : 8;
-            if (limit > 80) limit = 80;
-            while (p[take] && take < limit) {
-                if (p[take] == ' ') last_space = take;
-                take++;
-            }
-            if (p[take] && last_space > 0) take = last_space;
-            char line[84];
-            if (take > 83) take = 83;
-            strncpy(line, p, take);
-            line[take] = '\0';
-            d.fillRect(0, y - 1, W, 11, T_BG);
-            d.setTextColor(T_FG, T_BG);
-            d.setCursor(4, y);
-            d.print(line);
-            y += 10;
-            p += take;
-            if (*p == ' ') p++;
-        }
-    } else {
-        d.fillRect(0, y - 1, W, 11, T_BG);
-        d.setTextColor(T_DIM, T_BG);
-        d.setCursor(4, y);
-        d.print("(no detailed info)");
-    }
-}
-#endif
-
 /* Show detailed info for the selected item until any key pressed. */
 static void show_info(const menu_node_t *item)
 {
 #if POSEIDON_DUAL_SCREEN
     if (poseidon_dual_ok()) {
-        /* Info lives on the external panel at the existing 320×240
-         * content geometry. Rain draws first; opaque chrome covers it
-         * so glyphs never overlap the type. No bottom footer. */
+        /* Blood-sized card once. Later frames only repaint the gaps
+         * outside that chrome, clipped, so rain cannot eat the type
+         * and the panel is not fillScreen'd every tick. */
         poseidon_surface_t prev = poseidon_surface();
         poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+        char side[8];
+        snprintf(side, sizeof(side), "[%c]", (char)toupper(item->hotkey));
+        poseidon_ext_recover_if_needed();
+        const char *body = item->info ? item->info : "(no detailed info)";
+        poseidon_ext_paint_card(side, item->label, item->hint, body);
         while (true) {
-            auto &d = PoseidonDisplay;
-            const int W = SCR_W;
-            const int H = SCR_H;
-            d.clearClipRect();
-            d.fillScreen(T_BG);
-            ui_matrix_rain(0, 0, W, H, T_ACCENT);
-            paint_ext_info_chrome(d, W, H, item);
+            poseidon_ext_ambient_gaps();
             uint16_t k = input_poll();
             if (k != PK_NONE && k != PK_VOL) {
+                poseidon_ext_bus_idle();
                 poseidon_set_surface(prev);
                 return;
             }

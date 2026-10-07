@@ -29,6 +29,21 @@ static const char *s_sel_label  = nullptr;
 static const char *s_sel_hint   = nullptr;
 static uint8_t     s_sel_theme  = 0xFF;
 
+/* Shared SPI3 with the SD card. depth counts quiesce callers.
+ * needs_recover is set when a paint was attempted while the bus was
+ * held, or a resume arrived with no matching quiesce. No MISO on the
+ * 3-wire panel, so this flag is the health bit. */
+static int  s_quiesce_depth = 0;
+static bool s_ext_needs_recover = false;
+static bool s_ext_force_reinit = false;
+
+/* Background bands left by the blood-sized card. Ambience repaints
+ * only these. No full-frame sprite (320×240 RGB565 is 150 KB and the
+ * NimBLE gate needs a 48 KB contiguous block). */
+static int s_gap_y[8];
+static int s_gap_h[8];
+static int s_gap_n = 0;
+
 static void selection_cache_clear(void)
 {
     s_sel_parent = nullptr;
@@ -114,17 +129,31 @@ int poseidon_view_h(void)
 void poseidon_lcd_quiesce(void)
 {
     if (!s_ext_ok) return;
-    g_ext_display.endWrite();
-    g_ext_display.waitDisplay();
-    digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
+    if (s_quiesce_depth < 0) s_quiesce_depth = 0;
+    if (s_quiesce_depth == 0) {
+        g_ext_display.endWrite();
+        g_ext_display.waitDisplay();
+        digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
+    }
+    s_quiesce_depth++;
 }
 
 void poseidon_lcd_resume_after_bus(void)
 {
     if (!s_ext_ok) return;
-    /* After SD on shared SCK/MOSI: release CS only. No COLMOD / setColorDepth. */
-    digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
-    delay(2);
+    /* After SD on shared SCK/MOSI: release CS only. No COLMOD / setColorDepth.
+     * An extra resume (boot calls this once more after sd_mount) just
+     * parks CS. It does not count as a failed wake. */
+    if (s_quiesce_depth <= 0) {
+        s_quiesce_depth = 0;
+        digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
+        return;
+    }
+    s_quiesce_depth--;
+    if (s_quiesce_depth == 0) {
+        digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
+        delay(2);
+    }
 }
 
 /* Fit a C string into max_px pixels of the current font. */
@@ -146,6 +175,166 @@ static void print_fit(lgfx::LGFX_Device &d, int x, int y, int max_px,
     d.print(buf);
 }
 
+static void ext_mark_bad(void)
+{
+    s_ext_needs_recover = true;
+}
+
+static void gaps_add(int y, int h)
+{
+    if (h < 4 || s_gap_n >= 8) return;
+    if (y < 0) { h += y; y = 0; }
+    if (y >= 240 || h < 4) return;
+    if (y + h > 240) h = 240 - y;
+    s_gap_y[s_gap_n] = y;
+    s_gap_h[s_gap_n] = h;
+    s_gap_n++;
+}
+
+/* Occupied bands are added top-to-bottom. Gaps are whatever is left
+ * on the 240-tall panel. */
+static void gaps_between(int y0, int y1)
+{
+    if (y1 - y0 >= 4) gaps_add(y0, y1 - y0);
+}
+
+void poseidon_ext_invalidate(void)
+{
+    selection_cache_clear();
+    s_gap_n = 0;
+}
+
+void poseidon_ext_bus_idle(void)
+{
+    if (!s_ext_ok) return;
+    g_ext_display.endWrite();
+    g_ext_display.clearClipRect();
+    digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
+}
+
+bool poseidon_ext_recover_if_needed(void)
+{
+    if (!s_ext_needs_recover) return false;
+    if (s_quiesce_depth != 0) return false;
+    s_ext_needs_recover = false;
+    s_ext_force_reinit = true;
+    bool ok = poseidon_dual_begin();
+    selection_cache_clear();
+    s_gap_n = 0;
+    return ok;
+}
+
+void poseidon_ext_ambient_gaps(void)
+{
+    if (!s_ext_ok || s_gap_n <= 0) return;
+    if (s_quiesce_depth != 0) {
+        ext_mark_bad();
+        return;
+    }
+    auto &d = g_ext_display;
+    poseidon_surface_t prev = s_surface;
+    s_surface = POSEIDON_SURFACE_CONTENT;
+    for (int i = 0; i < s_gap_n; ++i) {
+        int y = s_gap_y[i];
+        int h = s_gap_h[i];
+        /* ui_matrix_rain paints a T_BG box behind every glyph, so a
+         * "skip the chrome" test is not enough. The clip is what keeps
+         * those boxes off the text. Cleared before the next band. */
+        d.setClipRect(0, y, 320, h);
+        d.fillRect(0, y, 320, h, theme().bg);
+        ui_ambient_tick(0, 0, 320, 240);
+        d.clearClipRect();
+    }
+    s_surface = prev;
+}
+
+void poseidon_ext_paint_card(const char *parent, const char *title,
+                             const char *hint, const char *body)
+{
+    if (!s_ext_ok) return;
+    if (s_quiesce_depth != 0) {
+        ext_mark_bad();
+        return;
+    }
+
+    auto &d = g_ext_display;
+    const int W = 320;
+    const uint16_t bg = theme().bg;
+    const uint16_t fg = theme().fg;
+    const uint16_t accent = theme().accent;
+    const uint16_t accent2 = theme().accent2;
+    const uint16_t dim = theme().dim;
+    const uint16_t status_bg = theme().status_bg;
+
+    /* Close a stuck CPU-SPI transaction (dma is off) so this paint
+     * re-asserts CS. A CS rise mid-RAMWR leaves the ILI9341 ignoring
+     * later writes while the backlight stays on. */
+    d.endWrite();
+    d.clearClipRect();
+    d.startWrite();
+    d.setTextDatum(top_left);
+    d.setTextWrap(false, false);
+    d.setTextSize(1);
+    d.fillScreen(bg);
+
+    d.fillRect(0, 0, W, 26, status_bg);
+    d.fillRect(0, 26, W, 2, accent2);
+    d.setTextSize(2);
+    d.setTextColor(accent, status_bg);
+    d.setCursor(10, 6);
+    d.print("POSEIDON");
+    d.setTextSize(1);
+    print_fit(d, 150, 9, W - 160, parent ? parent : "", accent2, status_bg);
+
+    d.setTextColor(dim, bg);
+    d.setCursor(12, 48);
+    d.print("CONTENT");
+
+    d.setTextSize(2);
+    print_fit(d, 12, 78, W - 24, title ? title : "", fg, bg);
+
+    d.setTextSize(1);
+    d.setTextColor(accent, bg);
+    d.drawFastHLine(12, 108, W - 24, accent);
+    print_fit(d, 12, 120, W - 24, hint ? hint : "", dim, bg);
+
+    /* Chrome bands, top to bottom. No footer line. */
+    s_gap_n = 0;
+    int covered = 136;
+    gaps_between(28, 44);
+    gaps_between(60, 74);
+    gaps_between(100, 104);
+
+    if (body && *body) {
+        const char *p = body;
+        int y = 140;
+        while (*p && y < 232) {
+            int take = 0, last_space = -1;
+            while (p[take] && take < 48) {
+                if (p[take] == ' ') last_space = take;
+                take++;
+            }
+            if (p[take] && last_space > 0) take = last_space;
+            char line[52];
+            if (take > 48) take = 48;
+            strncpy(line, p, take);
+            line[take] = '\0';
+            d.fillRect(0, y - 1, W, 12, bg);
+            d.setTextColor(fg, bg);
+            d.setCursor(12, y);
+            d.print(line);
+            gaps_between(covered, y - 1);
+            covered = y + 11;
+            y += 12;
+            p += take;
+            if (*p == ' ') p++;
+        }
+    }
+    gaps_between(covered, 240);
+    d.setTextSize(1);
+    d.endWrite();
+}
+
 void poseidon_content_show_selection(const char *parent,
                                      const char *label,
                                      const char *hint)
@@ -153,6 +342,10 @@ void poseidon_content_show_selection(const char *parent,
     if (!s_ext_ok) return;
     /* A feature owns the external panel. Leave its frame alone. */
     if (s_surface == POSEIDON_SURFACE_CONTENT) return;
+
+    if (poseidon_ext_recover_if_needed())
+        selection_cache_clear();
+    if (!s_ext_ok) return;
 
     uint8_t theme_id = (uint8_t)theme_current_id();
     if (parent == s_sel_parent && label == s_sel_label &&
@@ -164,97 +357,26 @@ void poseidon_content_show_selection(const char *parent,
     s_sel_hint   = hint;
     s_sel_theme  = theme_id;
 
-    /* Moving themes paint the external panel themselves. A static card
-     * would cover that motion. */
-    if (ui_ambient_paints()) {
-        poseidon_content_ambient_tick();
-        return;
-    }
-
-    auto &d = g_ext_display;
-    const int W = 320;
-    const int H = 240;
-    const uint16_t bg = theme().bg;
-    const uint16_t fg = theme().fg;
-    const uint16_t accent = theme().accent;
-    const uint16_t accent2 = theme().accent2;
-    const uint16_t dim = theme().dim;
-    const uint16_t status_bg = theme().status_bg;
-    const uint16_t footer_bg = theme().footer_bg;
-
-    d.setTextDatum(top_left);
-    d.setTextWrap(false, false);
-    d.fillScreen(bg);
-
-    /* Same palette as the menu — status, accent rule, footer. */
-    d.fillRect(0, 0, W, 26, status_bg);
-    d.fillRect(0, 26, W, 2, accent2);
-    d.setTextSize(2);
-    d.setTextColor(accent, status_bg);
-    d.setCursor(10, 6);
-    d.print("POSEIDON");
-    d.setTextSize(1);
-    print_fit(d, 150, 9, W - 160, parent ? parent : "", accent2, status_bg);
-
-    d.setTextSize(1);
-    d.setTextColor(dim, bg);
-    d.setCursor(12, 48);
-    d.print("CONTENT");
-
-    d.setTextSize(2);
-    print_fit(d, 12, 78, W - 24, label ? label : "", fg, bg);
-
-    d.setTextSize(1);
-    d.setTextColor(accent, bg);
-    d.drawFastHLine(12, 108, W - 24, accent);
-    print_fit(d, 12, 120, W - 24, hint ? hint : "", dim, bg);
-
-    d.fillRect(0, H - 22, W, 22, footer_bg);
-    d.drawFastHLine(0, H - 22, W, theme().rule);
-    d.setTextColor(dim, footer_bg);
-    d.setCursor(10, H - 14);
-    d.print("menu on internal    feature opens here");
-}
-
-static void content_caption(lgfx::LGFX_Device &d, int W, int H)
-{
-    const uint16_t bg = theme().footer_bg;
-    const uint16_t dim = theme().dim;
-    d.fillRect(0, H - 22, W, 22, bg);
-    d.drawFastHLine(0, H - 22, W, theme().rule);
-    d.setTextSize(1);
-    d.setTextDatum(top_left);
-    print_fit(d, 8, H - 14, W / 2 - 12, s_sel_label ? s_sel_label : "POSEIDON",
-              theme().fg, bg);
-    print_fit(d, W / 2, H - 14, W / 2 - 8, s_sel_hint ? s_sel_hint : "",
-              dim, bg);
+    /* Every theme, including E-INK (index 2, ambient no-op, bg 0xFFFF)
+     * and BLOOD (index 5, ambient no-op). The old branch sent painting
+     * themes through a full-frame tick plus a 22 px caption and sent
+     * no-op themes through this card only, so E-INK's idle path never
+     * touched the panel. */
+    poseidon_ext_paint_card(parent, label, hint, nullptr);
 }
 
 void poseidon_content_ambient_tick(void)
 {
     if (!s_ext_ok) return;
     if (s_surface == POSEIDON_SURFACE_CONTENT) return;
-    if (!ui_ambient_paints()) return;
-
-    poseidon_surface_t prev = s_surface;
-    s_surface = POSEIDON_SURFACE_CONTENT;
-
-    auto &d = g_ext_display;
-    const int W = poseidon_view_w();
-    const int H = poseidon_view_h();
-    d.clearClipRect();
-    d.setTextWrap(false, false);
-    d.setTextSize(1);
-    d.fillScreen(theme().bg);
-    ui_ambient_tick(0, 0, W, H - 22);
-    content_caption(d, W, H);
-
-    s_surface = prev;
+    /* Do not fillScreen and do not redraw the card. Gaps only. */
+    poseidon_ext_ambient_gaps();
 }
 
 bool poseidon_dual_begin(void)
 {
-    if (s_ext_ok) return true;
+    if (s_ext_ok && !s_ext_force_reinit) return true;
+    s_ext_force_reinit = false;
 
     /* Power rail settle after M5Cardputer.begin(). */
     delay(100);
