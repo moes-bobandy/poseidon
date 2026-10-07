@@ -56,6 +56,17 @@ void ui_init(void)
     d.fillScreen(T_BG);
     d.setTextWrap(false, false);
     d.setTextSize(1);
+#if POSEIDON_DUAL_SCREEN
+    /* Boot surface is the menu panel. Paint the content panel with the
+     * same theme background so EXT is not a second palette or a stub. */
+    if (poseidon_dual_ok()) {
+        auto &c = poseidon_content();
+        c.fillScreen(T_BG);
+        c.setTextWrap(false, false);
+        c.setTextSize(1);
+        c.setTextDatum(top_left);
+    }
+#endif
 }
 
 static uint32_t s_last_clear = 0;
@@ -802,7 +813,7 @@ void ui_action_overlay_with_tick(const char *headline, const char *subtitle,
     /* Full-screen canvas — drawing into RAM eliminates the per-frame
      * fillScreen flash that the panel previously made visible. ~64 KB
      * transient alloc; freed at exit. */
-    M5Canvas canvas(&d);
+    M5Canvas canvas(poseidon_as_gfx(d));
     if (!canvas.createSprite(SCR_W, SCR_H)) {
         /* Alloc failed — fall back to direct draw on display (legacy
          * behavior, will flash but at least renders). */
@@ -959,7 +970,9 @@ void ui_action_overlay_with_tick(const char *headline, const char *subtitle,
  *   - advances head down; resets when off-screen
  * Glyph pool: printable katakana-ish via random printable chars.
  */
-#define MATRIX_COLS 20
+/* 6px cells. 20 columns only cover the left 120px of a 240-wide menu.
+ * 54 covers the internal 240 and the external 320. */
+#define MATRIX_COLS 54
 static int8_t  mx_head[MATRIX_COLS];      /* -1 = inactive */
 static uint8_t mx_speed[MATRIX_COLS];
 static char    mx_glyph[MATRIX_COLS];

@@ -216,6 +216,8 @@ static void draw_card_full(const menu_node_t *parent, int cursor, int slide_x)
     d.setTextColor(cursor < n - 1 ? T_ACCENT2 : T_DIM, T_BG);
     d.setCursor(SCR_W - 6, amid);
     d.print(">");
+
+    poseidon_content_show_selection(parent->label, item->label, item->hint);
 }
 
 /* Lightweight idle paint — only touches the parts of the card that
@@ -264,7 +266,9 @@ static void draw_card_anim(const menu_node_t *parent, int cursor)
     /* Clear both strips back to T_BG, then paint ambient — clipped per
      * strip so the ambient mote/grid/packet positions stay computed
      * against the FULL card bounds (otherwise motes would loop in a
-     * strip-sized box and the animation would feel cramped). */
+     * strip-sized box and the animation would feel cramped).
+     * Dual builds play that motion on the external panel instead. */
+    if (poseidon_dual_ok()) poseidon_content_ambient_tick();
     d.fillRect(amb_x, amb_top_y, amb_w, amb_top_h, T_BG);
     d.setClipRect(amb_x, amb_top_y, amb_w, amb_top_h);
     ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
@@ -371,7 +375,9 @@ void carousel_run_submenu(const menu_node_t *parent)
             if (sel->action) {
                 Serial.printf("[FEAT_ENTER] %s\n", sel->label);
                 g_current_feature_item = sel;
+                poseidon_enter_ui(menu_action_is_chrome(sel->action));
                 sel->action();
+                poseidon_leave_ui();
                 g_current_feature_item = nullptr;
                 /* Defensive IR park — see menu.cpp comment. */
                 pinMode(44, OUTPUT); digitalWrite(44, HIGH);
@@ -399,7 +405,9 @@ void carousel_run_submenu(const menu_node_t *parent)
                 if (sel->action) {
                     Serial.printf("[FEAT_ENTER] %s\n", sel->label);
                     g_current_feature_item = sel;
+                    poseidon_enter_ui(menu_action_is_chrome(sel->action));
                     sel->action();
+                    poseidon_leave_ui();
                     g_current_feature_item = nullptr;
                     /* Defensive IR park — same as regular path. */
                     pinMode(44, OUTPUT); digitalWrite(44, HIGH);

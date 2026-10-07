@@ -6,7 +6,28 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-(empty — new work since 0.6.8 lands here)
+### Changed
+
+- **Dual field fixes (glass).** Hunt/Argus is drawn at 240×135 and
+  uniform-scaled to the external panel width so the face is not warped
+  and the stats travel with it. LCD DMA is off so pushImage is not
+  scrambled and opening BLE spam does not reset. TCA8418 FIFO is drained
+  so Fn+`;` / Fn+`.` change speaker volume, including the ES8311 DAC.
+  Info on the external panel is rain behind opaque text, with no
+  selection-card footer. Menu rain uses enough columns to span 240.
+- **Dual field fixes.** Argus on the ILI9341 is pushed as host-order
+  RGB565 (the pre-swapped ST7789 bytes were color noise on that panel).
+  External landscape rotation no longer mirrors (0,0) into the upper-right.
+  Content width/height follow the panel. Fn+`;` / Fn+`.` on the TCA8418
+  (Adv up/down arrows) change speaker volume without taking bare `;` / `.`
+  away from the menu.
+- **Dual-screen routing v1.** On `cardputer-dual` / `cardputer-dual-launcher`
+  the menu, carousel, and theme picker stay on the internal ST7789 (240×135).
+  Splash, features, ambience, and the screensaver draw on the external
+  ILI9341 at native 320×240 (`SCR_W`/`SCR_H` follow the content surface).
+  Argus sprites use the same byte order as the internal panel. Both panels
+  use `theme.h`. Stock `cardputer` builds are unchanged: menu and content
+  are both `M5Cardputer.Display`, and `SCR_W`/`SCR_H` stay compile-time 240×135.
 
 ## [0.6.8] - 2026-07-03
 

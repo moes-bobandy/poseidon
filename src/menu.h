@@ -39,6 +39,10 @@ enum menu_style_t {
 menu_style_t menu_style_get(void);
 void         menu_style_set(menu_style_t s);
 
+/* Theme picker and the terminal/carousel toggle draw on the menu
+ * surface. Every other action is a feature and draws on content. */
+bool menu_action_is_chrome(menu_action_fn fn);
+
 /* Enter the main menu loop. Returns when user quits (rare). */
 void menu_run(void);
 

@@ -7,7 +7,7 @@
 #include <M5Cardputer.h>
 #include "display/poseidon_display.h"
 
-/* ---- palette (16-bit 565, via PoseidonDisplay) ---- */
+/* ---- palette (16-bit 565). Both dual-screen surfaces use theme.h. ---- */
 #define COL_BG       0x0000  /* black */
 #define COL_FG       0xFFFF  /* white */
 #define COL_ACCENT   0x07FF  /* cyan */
@@ -18,11 +18,23 @@
 #define COL_MAGENTA  0xF81F
 
 /* ---- display geometry ----
- * Phase-1 dual-screen keeps 240x135 UI layout on the external
- * ILI9341 (top-left). Full 320x240 redesign is later.
+ * Stock builds: compile-time 240×135, same as the internal ST7789.
+ * Dual builds: SCR_W / SCR_H follow the active surface. Menu stays
+ * 240×135. Content (external ILI9341 up) is native 320×240 so feature
+ * chrome, clears, and HUDs fill the panel instead of a 240×135 island.
+ * POSEIDON_PANEL_MAX_* is the largest size a static scanline may hold.
  */
+#if POSEIDON_DUAL_SCREEN
+#define SCR_W poseidon_view_w()
+#define SCR_H poseidon_view_h()
+#define POSEIDON_PANEL_MAX_W 320
+#define POSEIDON_PANEL_MAX_H 240
+#else
 #define SCR_W 240
 #define SCR_H 135
+#define POSEIDON_PANEL_MAX_W 240
+#define POSEIDON_PANEL_MAX_H 135
+#endif
 #define STATUS_H 12
 #define FOOTER_H 10
 #define BODY_Y   (STATUS_H)

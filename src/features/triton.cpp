@@ -1280,6 +1280,10 @@ void feat_triton(void)
 
         if (now - last_draw > 120) {
             last_draw = now;
+            /* Stock 240×135 hunt layout, then one uniform scale to the
+             * panel width so the face and the stats are a single
+             * footprint. Letterbox bands stay theme-colored. */
+            bool framed = poseidon_frame_begin();
             auto &d = PoseidonDisplay;
             /* One-shot full clear when the body has been clobbered by
              * something OUTSIDE our normal redraw (menu bleeding through
@@ -1436,6 +1440,7 @@ void feat_triton(void)
             }
 
             ui_draw_status("wifi", "triton");
+            if (framed) poseidon_frame_present();
         }
 
         /* 5 GHz attack window: fire C5 commands. Only runs during

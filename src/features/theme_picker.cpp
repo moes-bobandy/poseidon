@@ -50,6 +50,11 @@ void feat_theme_picker(void)
         }
         theme_preview((theme_id_t)sel);   /* back to browsed theme after swatch loop */
 
+        /* Picker chrome stays on the menu panel. The content panel
+         * previews the same palette — no second color set. */
+        poseidon_content_show_selection("Theme", theme().name,
+                                        "menu and content share this palette");
+
         ui_draw_footer(";/.=browse  ENTER=apply  ESC=back");
 
         uint16_t k = input_poll();

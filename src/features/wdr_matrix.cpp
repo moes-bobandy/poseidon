@@ -18,8 +18,10 @@
 #include <esp_random.h>
 #include <string.h>
 
-#define MXW      240
-#define MXH      135
+/* Follow the active surface. Stock is 240×135; dual content is the
+ * external panel (320×240) so the matrix HUD is not a corner island. */
+#define MXW      SCR_W
+#define MXH      SCR_H
 #define MXCW     6
 #define MXCH     8
 #define MX_MAXDEC 3
@@ -211,7 +213,7 @@ void wdr_matrix_render(uint8_t chan, int ap_count, bool gps_valid, uint8_t sats)
 
     /* ---- backdrop rain: LOWER band only, so it never fights the roster/HUD.
      * ui_matrix_rain erases its own trails, so this is flicker-free. ---- */
-    ui_matrix_rain(0, 70, MXW, 54, T_ACCENT);
+    ui_matrix_rain(0, 70, MXW, (MXH > 160) ? (MXH - 82) : 54, T_ACCENT);
 
     /* ---- decode fly-ins in the rain band (opaque bg; clear once on finish) ---- */
     mx_dispatch(now);

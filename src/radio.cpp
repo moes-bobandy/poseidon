@@ -6,6 +6,8 @@
 #include "cc1101_hw.h"
 #include "nrf24_hw.h"
 #include "gps.h"
+#include "heap_budget.h"
+#include "display/poseidon_display.h"
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_netif.h>
@@ -190,11 +192,27 @@ bool radio_switch(radio_domain_t target)
                       (int)esp_bt_controller_get_status());
         Serial.flush();
         if (!NimBLEDevice::isInitialized()) {
+            heap_reclaim_all();
+            poseidon_lcd_quiesce();
+            size_t largest = heap_largest_internal();
+            Serial.printf("[radio] BLE precheck largest=%u\n", (unsigned)largest);
+            Serial.flush();
+            /* NimBLE's controller bring-up asserts instead of returning
+             * when the largest internal block is too small. Bail before
+             * that so opening Spam does not reset the device. */
+            if (largest < 48 * 1024) {
+                Serial.println("[radio] BLE init skipped — heap");
+                Serial.flush();
+                poseidon_lcd_resume_after_bus();
+                return false;
+            }
             Serial.println("[radio] NimBLEDevice::init() begin"); Serial.flush();
             bool ok = NimBLEDevice::init("");
+            poseidon_lcd_resume_after_bus();
             Serial.printf("[radio] NimBLEDevice::init() -> %d bt_ctrl_status=%d\n",
                           (int)ok, (int)esp_bt_controller_get_status());
             Serial.flush();
+            if (!ok) return false;
         } else {
             Serial.println("[radio] NimBLE already initialized"); Serial.flush();
         }

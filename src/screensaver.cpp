@@ -1054,7 +1054,10 @@ void screensaver_run_index(int idx)
 {
     load_settings();
     if (idx < 0 || idx >= POOL_N) return;
-    s_pool[idx].run();
+    /* Dual: idle painters fill the external 320×240 panel. Stock
+     * poseidon_while_content is a direct call, so the only display
+     * is unchanged. */
+    poseidon_while_content(s_pool[idx].run);
     save_last(idx);
 }
 
@@ -1084,7 +1087,7 @@ bool screensaver_check_idle(void)
     else                                    idx = s_pick;
     if (idx < 0 || idx >= POOL_N) idx = 0;
 
-    s_pool[idx].run();
+    poseidon_while_content(s_pool[idx].run);
     save_last(idx);
     return true;
 }

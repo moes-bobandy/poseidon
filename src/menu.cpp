@@ -176,6 +176,11 @@ extern void feat_theme_picker(void);
 extern void feat_sfx_settings(void);
 extern void feat_ambient_preview(void);
 extern void feat_menu_style_toggle(void);
+
+bool menu_action_is_chrome(menu_action_fn fn)
+{
+    return fn == feat_theme_picker || fn == feat_menu_style_toggle;
+}
 extern void feat_screensaver_toggle(void);
 extern void feat_screensaver_picker(void);
 /* extern void feat_ota_update(void); — REMOVED 2026-05-27 */
@@ -1079,6 +1084,9 @@ static int count_children(const menu_node_t *parent)
 static void draw_menu_anim(const menu_node_t *parent, int cursor)
 {
     if (!ui_ambient_enabled()) return;
+    /* Dual: motion belongs on the external panel, full 320×240.
+     * The internal menu keeps the last full paint. */
+    if (poseidon_dual_ok()) poseidon_content_ambient_tick();
     auto &d = PoseidonDisplay;
     int n = count_children(parent);
     if (n <= 0) return;
@@ -1160,8 +1168,13 @@ static void draw_menu(const menu_node_t *parent, int cursor)
     /* Paint theme-aware ambient motion BEFORE menu chrome — rows draw
      * over the top with their own opaque background so they remain
      * readable. No-op when the user has disabled ambient via
-     * System -> Ambient. */
-    ui_ambient_tick(0, BODY_Y, SCR_W, BODY_H);
+     * System -> Ambient. On a dual build this layer is the external
+     * panel (see draw_menu_anim); the internal menu stays chrome. */
+    {
+        int mw = poseidon_menu().width();
+        if (mw <= 0) mw = SCR_W;
+        ui_ambient_tick(0, BODY_Y, mw, BODY_H);
+    }
 
     /* Title with count + scroll indicator. Title underline is a strategic
      * magenta splash — full body width, 2 px thick — so the cyberpunk
@@ -1243,6 +1256,7 @@ static void draw_menu(const menu_node_t *parent, int cursor)
                 d.print(sel->hint);
             }
         }
+        poseidon_content_show_selection(parent->label, sel->label, sel->hint);
     }
 }
 
@@ -1262,36 +1276,43 @@ void ui_show_current_help(void)
     show_info(g_current_feature_item);
 }
 
-/* Show detailed info for the selected item until any key pressed. */
-static void show_info(const menu_node_t *item)
+/* Opaque info chrome drawn AFTER rain so glyphs never sit on the type. */
+template<typename Disp>
+static void paint_info_chrome(Disp &d, int W, int H,
+                              const menu_node_t *item)
 {
-    auto &d = PoseidonDisplay;
-    ui_force_clear_body();
+    const int chars = (W - 8) / 6;
+    d.setTextSize(1);
+    d.setTextDatum(top_left);
+    d.fillRect(0, 2, W, 22, T_BG);
     d.setTextColor(T_ACCENT2, T_BG);
-    d.setCursor(4, BODY_Y + 2);
+    d.setCursor(4, 4);
     d.printf("[%c] %s", toupper(item->hotkey), item->label);
-    d.drawFastHLine(4, BODY_Y + 12, SCR_W - 8, T_ACCENT2);
+    d.drawFastHLine(4, 16, W - 8, T_ACCENT2);
 
+    d.fillRect(0, 20, W, 12, T_BG);
     d.setTextColor(T_ACCENT, T_BG);
-    d.setCursor(4, BODY_Y + 18);
+    d.setCursor(4, 20);
     d.printf("> %s", item->hint ? item->hint : "");
 
-    /* Word-wrapped info paragraph, ~38 chars per line at 6px font. */
+    int y = 36;
     if (item->info) {
-        d.setTextColor(T_FG, T_BG);
         const char *p = item->info;
-        int y = BODY_Y + 34;
-        while (*p && y < FOOTER_Y - 8) {
-            /* Find a wrap point within 38 chars. */
+        while (*p && y < H - 14) {
             int take = 0, last_space = -1;
-            while (p[take] && take < 38) {
+            int limit = chars > 8 ? chars : 8;
+            if (limit > 80) limit = 80;
+            while (p[take] && take < limit) {
                 if (p[take] == ' ') last_space = take;
                 take++;
             }
             if (p[take] && last_space > 0) take = last_space;
-            char line[40];
+            char line[84];
+            if (take > 83) take = 83;
             strncpy(line, p, take);
             line[take] = '\0';
+            d.fillRect(0, y - 1, W, 11, T_BG);
+            d.setTextColor(T_FG, T_BG);
             d.setCursor(4, y);
             d.print(line);
             y += 10;
@@ -1299,15 +1320,45 @@ static void show_info(const menu_node_t *item)
             if (*p == ' ') p++;
         }
     } else {
+        d.fillRect(0, y - 1, W, 11, T_BG);
         d.setTextColor(T_DIM, T_BG);
-        d.setCursor(4, BODY_Y + 34);
+        d.setCursor(4, y);
         d.print("(no detailed info)");
     }
+}
 
-    ui_draw_footer("any key = back");
+/* Show detailed info for the selected item until any key pressed. */
+static void show_info(const menu_node_t *item)
+{
+#if POSEIDON_DUAL_SCREEN
+    if (poseidon_dual_ok()) {
+        /* Info lives on the external panel: rain first, opaque chrome
+         * after, no selection-card footer. */
+        poseidon_surface_t prev = poseidon_surface();
+        poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+        while (true) {
+            auto &d = PoseidonDisplay;
+            int W = d.width() > 0 ? d.width() : SCR_W;
+            int H = d.height() > 0 ? d.height() : SCR_H;
+            d.clearClipRect();
+            d.fillScreen(T_BG);
+            ui_matrix_rain(0, 0, W, H, T_ACCENT);
+            paint_info_chrome(d, W, H, item);
+            uint16_t k = input_poll();
+            if (k != PK_NONE && k != PK_VOL) {
+                poseidon_set_surface(prev);
+                return;
+            }
+            delay(33);
+        }
+    }
+#endif
+    auto &d = PoseidonDisplay;
+    ui_force_clear_body();
+    paint_info_chrome(d, SCR_W, SCR_H, item);
     while (true) {
         uint16_t k = input_poll();
-        if (k != PK_NONE) return;
+        if (k != PK_NONE && k != PK_VOL) return;
         delay(40);
     }
 }
@@ -1325,6 +1376,15 @@ static void slide_to(const menu_node_t *p, int c, int dir) {
 }
 
 #define FOOTER_HINTS "letter=go  ;/.=move  ENTER=sel  ==info  `=back"
+
+/* Theme picker and layout toggle stay on the menu panel. Every other
+ * action is a feature and draws on the content panel. */
+static void invoke_feature(const menu_node_t *sel)
+{
+    poseidon_enter_ui(menu_action_is_chrome(sel->action));
+    sel->action();
+    poseidon_leave_ui();
+}
 
 static void run_submenu(const menu_node_t *parent)
 {
@@ -1395,7 +1455,7 @@ static void run_submenu(const menu_node_t *parent)
                               sel->label, (unsigned)heap_free_internal(),
                               (unsigned)hb_reclaimed);
                 g_current_feature_item = sel;
-                sel->action();
+                invoke_feature(sel);
                 g_current_feature_item = nullptr;
                 /* Defensive IR park — IR features should self-park HIGH
                  * but if any path skips that, the LED stays glowing.
@@ -1439,7 +1499,7 @@ static void run_submenu(const menu_node_t *parent)
                                       ch->label, (unsigned)heap_free_internal(),
                                       (unsigned)hb_reclaimed);
                         g_current_feature_item = ch;
-                        ch->action();
+                        invoke_feature(ch);
                         g_current_feature_item = nullptr;
                         /* Defensive IR park — same as above. */
                         pinMode(44, OUTPUT); digitalWrite(44, HIGH);
