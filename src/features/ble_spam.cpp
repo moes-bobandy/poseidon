@@ -125,7 +125,7 @@ static void spam_tick(void)
         build_apple(raw, s_apple_models[apple_i++ % (sizeof(s_apple_models))]);
         raw_len = 31;
         break;
-    case SPAM_SAMSUNG:  build_samsung(raw); raw_len = sizeof(raw); break;
+    case SPAM_SAMSUNG:  build_samsung(raw); raw_len = 13; break;
     case SPAM_GOOGLE:   build_google(raw);  raw_len = 11;          break;
     case SPAM_WINDOWS:  build_windows(raw); raw_len = 11;          break;
     default: return;
@@ -174,17 +174,11 @@ static spam_kind_t pick_kind(void)
 
 void feat_ble_spam(void)
 {
-    radio_switch(RADIO_BLE);
-    /* radio_switch(RADIO_BLE) does NOT init NimBLE — per radio.cpp comment,
-     * BLE features manage the lifecycle themselves. If the user opens Spam
-     * fresh (without running Scan first) NimBLE is uninitialized and
-     * getAdvertising() no-ops, which is exactly the "spam seems to do
-     * nothing" symptom. Init here if needed. */
-    if (!NimBLEDevice::isInitialized()) {
-        if (!NimBLEDevice::init("")) {
-            ui_toast("ble init failed", T_BAD, 1500);
-            return;
-        }
+    /* radio_switch brings NimBLE up once, and refuses when the heap
+     * cannot hold the controller (that path used to reset the device). */
+    if (!radio_switch(RADIO_BLE) || !NimBLEDevice::isInitialized()) {
+        ui_toast("ble init failed", T_BAD, 1500);
+        return;
     }
     spam_kind_t k = pick_kind();
     if ((int)k < 0) return;

@@ -62,37 +62,48 @@ static uint16_t input_poll_raw(void)
         return code;
     }
     M5Cardputer.update();
-    if (!M5Cardputer.Keyboard.isChange()) return PK_NONE;
-    if (!M5Cardputer.Keyboard.isPressed()) return PK_NONE;
+    /* Second pass: our reader already drains the FIFO, but keysState
+     * was built inside update(). Rebuild so Fn and the arrow are both
+     * visible in this same poll. */
+    M5Cardputer.Keyboard.updateKeysState();
 
     auto status = M5Cardputer.Keyboard.keysState();
-
-    /* Cardputer Adv TCA8418: the key beside L is ';' and Fn makes it
-     * Up; the key under that is '.' and Fn makes it Down (M5 fn-arrow
-     * layer). Those two are the hardware volume rocker. Bare ';' / '.'
-     * still navigate the menu. */
-    if (status.fn && !status.word.empty()) {
-        char c = status.word[0];
-        if (c == ';' || c == ':' || c == '.' || c == '>') {
-            int dir = (c == ';' || c == ':') ? 1 : -1;
-            int v = (int)sfx_get_volume() + dir;
-            if (v < 0) v = 0;
-            if (v > 10) v = 10;
-            if (sfx_is_muted()) sfx_set_mute(false);
-            sfx_set_volume((uint8_t)v);
-            sfx_click();
-            auto &m = poseidon_menu();
-            int mw = m.width();
-            if (mw <= 0) mw = 240;
-            m.fillRect(0, 0, mw, 12, T_BG);
-            m.setTextColor(T_ACCENT, T_BG);
-            m.setTextSize(1);
-            m.setCursor(4, 2);
-            m.printf("VOL %d/10", v);
+    /* Adv volume rocker is the TCA8418 fn-arrow layer: Fn+';' (Up) and
+     * Fn+'.' (Down). Checked on the live key list, not only the edge
+     * that isChange() reports, and swallowed so the menu does not move. */
+    {
+        bool up = status.fn && (M5Cardputer.Keyboard.isKeyPressed(';')
+                             || M5Cardputer.Keyboard.isKeyPressed(':'));
+        bool dn = status.fn && (M5Cardputer.Keyboard.isKeyPressed('.')
+                             || M5Cardputer.Keyboard.isKeyPressed('>'));
+        if (up != dn) {
+            static uint32_t s_vol_at = 0;
+            uint32_t now = millis();
+            if (now - s_vol_at >= 160) {
+                s_vol_at = now;
+                int v = (int)sfx_get_volume() + (up ? 1 : -1);
+                if (v < 0) v = 0;
+                if (v > 10) v = 10;
+                if (sfx_is_muted()) sfx_set_mute(false);
+                sfx_set_volume((uint8_t)v);
+                sfx_click();
+                auto &m = poseidon_menu();
+                int mw = m.width();
+                if (mw <= 0) mw = 240;
+                m.fillRect(0, 0, mw, 12, T_BG);
+                m.setTextColor(T_ACCENT, T_BG);
+                m.setTextSize(1);
+                m.setCursor(4, 2);
+                m.printf("VOL %d/10", v);
+            }
             s_last_key = PK_VOL;
             return PK_VOL;
         }
     }
+
+    if (!M5Cardputer.Keyboard.isChange()) return PK_NONE;
+    if (!M5Cardputer.Keyboard.isPressed()) return PK_NONE;
+    status = M5Cardputer.Keyboard.keysState();
 
     /* Control keys take precedence. */
     if (status.enter) { s_last_key = PK_ENTER; sfx_select(); return PK_ENTER; }

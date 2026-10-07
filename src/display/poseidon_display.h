@@ -44,9 +44,9 @@ enum poseidon_surface_t {
 
 #include "display/LGFX_ILI9341.h"
 
-lgfx::LGFX_Device &poseidon_menu(void);
-lgfx::LGFX_Device &poseidon_content(void);
-lgfx::LGFX_Device &poseidon_disp(void);
+lgfx::LGFXBase &poseidon_menu(void);
+lgfx::LGFXBase &poseidon_content(void);
+lgfx::LGFXBase &poseidon_disp(void);
 
 bool poseidon_dual_begin(void);
 bool poseidon_dual_ok(void);
@@ -78,6 +78,14 @@ void poseidon_content_ambient_tick(void);
  * Restores the previous surface. Stock builds just call fn. */
 void poseidon_while_content(void (*fn)(void));
 
+/* Draw the next hunt/wardrive frame into a 240×135 sprite, then
+ * poseidon_frame_present() uniform-scales it to the panel width and
+ * centers it. Face and stats stay one footprint; the face is not
+ * stretched. No-op (false) when there is no external panel. */
+bool poseidon_frame_begin(void);
+void poseidon_frame_present(void);
+bool poseidon_composing(void);
+
 /* Width/height of the active surface. Menu is 240×135. Content is
  * 320×240 when the external panel came up, else 240×135. */
 int poseidon_view_w(void);
@@ -101,9 +109,21 @@ inline void poseidon_leave_ui(void) {}
 inline void poseidon_content_show_selection(const char *, const char *, const char *) {}
 inline void poseidon_content_ambient_tick(void) {}
 inline void poseidon_while_content(void (*fn)(void)) { if (fn) fn(); }
+inline bool poseidon_frame_begin(void) { return false; }
+inline void poseidon_frame_present(void) {}
+inline bool poseidon_composing(void) { return false; }
 inline int poseidon_view_w(void) { return 240; }
 inline int poseidon_view_h(void) { return 135; }
 
 #define PoseidonDisplay M5Cardputer.Display
 
 #endif /* POSEIDON_DUAL_SCREEN */
+
+/* M5Canvas wants a LovyanGFX*. PoseidonDisplay is an LGFXBase so the
+ * dual build can also target a sprite. The object is always an
+ * LGFX_Device except while poseidon_composing(), and spectrum sprites
+ * are not created during that window. */
+inline lgfx::LovyanGFX *poseidon_as_gfx(lgfx::LGFXBase &d)
+{
+    return static_cast<lgfx::LGFX_Device *>(&d);
+}

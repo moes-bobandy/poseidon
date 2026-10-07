@@ -8,6 +8,13 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Dual field fixes (glass).** Hunt/Argus is drawn at 240×135 and
+  uniform-scaled to the external panel width so the face is not warped
+  and the stats travel with it. LCD DMA is off so pushImage is not
+  scrambled and opening BLE spam does not reset. TCA8418 FIFO is drained
+  so Fn+`;` / Fn+`.` change speaker volume, including the ES8311 DAC.
+  Info on the external panel is rain behind opaque text, with no
+  selection-card footer. Menu rain uses enough columns to span 240.
 - **Dual field fixes.** Argus on the ILI9341 is pushed as host-order
   RGB565 (the pre-swapped ST7789 bytes were color noise on that panel).
   External landscape rotation no longer mirrors (0,0) into the upper-right.

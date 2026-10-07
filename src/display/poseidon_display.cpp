@@ -21,6 +21,9 @@ LGFX_ILI9341 g_ext_display;
 static bool s_ext_ok = false;
 static poseidon_surface_t s_surface = POSEIDON_SURFACE_MENU;
 static poseidon_surface_t s_surface_restore = POSEIDON_SURFACE_MENU;
+/* Stock 240×135 hunt/menu frame, uniform-scaled onto the 320-wide panel. */
+static M5Canvas *s_frame = nullptr;
+static bool s_composing = false;
 
 /* Companion-card cache. Cleared on return to the menu surface so a
  * feature's last frame is replaced by the themed selection card. */
@@ -37,21 +40,70 @@ static void selection_cache_clear(void)
     s_sel_theme  = 0xFF;
 }
 
-lgfx::LGFX_Device &poseidon_menu(void)
+lgfx::LGFXBase &poseidon_menu(void)
 {
     return M5Cardputer.Display;
 }
 
-lgfx::LGFX_Device &poseidon_content(void)
+lgfx::LGFXBase &poseidon_content(void)
 {
     if (s_ext_ok) return g_ext_display;
     return M5Cardputer.Display;
 }
 
-lgfx::LGFX_Device &poseidon_disp(void)
+lgfx::LGFXBase &poseidon_disp(void)
 {
+    if (s_composing && s_frame) return *s_frame;
     if (s_surface == POSEIDON_SURFACE_CONTENT) return poseidon_content();
     return poseidon_menu();
+}
+
+bool poseidon_composing(void) { return s_composing; }
+
+bool poseidon_frame_begin(void)
+{
+    if (!s_ext_ok || s_surface != POSEIDON_SURFACE_CONTENT) return false;
+    if (!s_frame) {
+        s_frame = new M5Canvas(&g_ext_display);
+        s_frame->setColorDepth(16);
+        /* Same byte order as the ST7789 path. Argus sprites and text
+         * pixels land in this buffer the way the internal panel stores
+         * them; the zoom blit converts once onto the ILI9341. */
+        s_frame->setSwapBytes(false);
+        if (!s_frame->createSprite(240, 135)) {
+            delete s_frame;
+            s_frame = nullptr;
+            Serial.println("[dual] hunt frame sprite OOM");
+            return false;
+        }
+        s_frame->setTextWrap(false, false);
+        s_frame->setTextSize(1);
+        s_frame->setTextDatum(top_left);
+    }
+    s_composing = true;
+    return true;
+}
+
+void poseidon_frame_present(void)
+{
+    if (!s_frame) { s_composing = false; return; }
+    s_composing = false;
+    auto &p = g_ext_display;
+    const int pw = p.width() > 0 ? p.width() : 320;
+    const int ph = p.height() > 0 ? p.height() : 240;
+    /* Uniform scale so the face is not stretched. 240→panel width,
+     * height follows (180 on a 240-tall panel) and is centered. */
+    const float z = (float)pw / 240.0f;
+    const int sh = (int)(135.0f * z + 0.5f);
+    const int y0 = (ph - sh) / 2;
+    if (y0 > 0) {
+        p.fillRect(0, 0, pw, y0, theme().bg);
+        int bot = y0 + sh;
+        if (bot < ph) p.fillRect(0, bot, pw, ph - bot, theme().bg);
+    }
+    p.setClipRect(0, 0, pw, ph);
+    s_frame->pushRotateZoom(&p, pw * 0.5f, ph * 0.5f, 0.0f, z, z);
+    p.clearClipRect();
 }
 
 bool poseidon_dual_ok(void) { return s_ext_ok; }
@@ -101,6 +153,7 @@ void poseidon_leave_ui(void)
 
 int poseidon_view_w(void)
 {
+    if (s_composing) return 240;
     if (s_surface == POSEIDON_SURFACE_CONTENT && s_ext_ok) {
         int w = g_ext_display.width();
         if (w > 0) return w;
@@ -111,6 +164,7 @@ int poseidon_view_w(void)
 
 int poseidon_view_h(void)
 {
+    if (s_composing) return 135;
     if (s_surface == POSEIDON_SURFACE_CONTENT && s_ext_ok) {
         int h = g_ext_display.height();
         if (h > 0) return h;
@@ -221,7 +275,7 @@ void poseidon_content_show_selection(const char *parent,
     d.drawFastHLine(0, H - 22, W, theme().rule);
     d.setTextColor(dim, footer_bg);
     d.setCursor(10, H - 14);
-    d.print("menu on internal    feature opens here");
+    if (s_sel_hint && s_sel_hint[0]) d.print(s_sel_hint);
 }
 
 static void content_caption(lgfx::LGFX_Device &d, int W, int H)

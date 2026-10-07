@@ -69,6 +69,14 @@ static void apply_volume(void)
 {
     uint8_t v = s_mute ? 0 : user_to_m5(s_volume);
     M5Cardputer.Speaker.setVolume(v);
+    /* Cardputer Adv speaker is an ES8311. Its DAC register stays at
+     * 0xBF (±0 dB) unless we write it, so software volume alone can
+     * sound locked. 0 = mute, 0xBF = full. Ignore a NACK on boards
+     * that do not have the codec. */
+    uint8_t reg = (s_mute || s_volume == 0)
+                      ? 0
+                      : (uint8_t)(0x20 + ((unsigned)s_volume * (0xBF - 0x20)) / 10);
+    M5.In_I2C.writeRegister8(0x18, 0x32, reg, 100000);
 }
 
 void sfx_init(void)

@@ -76,7 +76,10 @@ public:
         b.freq_read   = 16000000;
         b.spi_3wire   = true;
         b.use_lock    = true;
-        b.dma_channel = 1;
+        /* DMA channel 1 fights the BT/WiFi controller and scrambles
+         * pushImage (Argus color noise) and can reset the chip when a
+         * spam feature starts the radio. CPU SPI is slower and stable. */
+        b.dma_channel = 0;
         b.pin_sclk    = POSEIDON_EXT_PIN_SCK;
         b.pin_mosi    = POSEIDON_EXT_PIN_MOSI;
         b.pin_miso    = -1;

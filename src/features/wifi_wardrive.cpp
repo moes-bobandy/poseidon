@@ -523,6 +523,7 @@ void feat_wifi_wardrive(void)
             if (s_view == WDR_VIEW_MATRIX) {
                 wdr_matrix_render(s_current_ch, s_ap_count, g.valid, g.sats);
             } else {
+                bool framed = poseidon_frame_begin();
                 ui_draw_status(radio_name(), "wardrive");
 
                 /* GPS lock edges -> celebration / annoyance flashes. */
@@ -558,6 +559,7 @@ void feat_wifi_wardrive(void)
                 } else {
                     draw_plain_view(dirty);
                 }
+                if (framed) poseidon_frame_present();
             }
         }
 

@@ -813,7 +813,7 @@ void ui_action_overlay_with_tick(const char *headline, const char *subtitle,
     /* Full-screen canvas — drawing into RAM eliminates the per-frame
      * fillScreen flash that the panel previously made visible. ~64 KB
      * transient alloc; freed at exit. */
-    M5Canvas canvas(&d);
+    M5Canvas canvas(poseidon_as_gfx(d));
     if (!canvas.createSprite(SCR_W, SCR_H)) {
         /* Alloc failed — fall back to direct draw on display (legacy
          * behavior, will flash but at least renders). */
@@ -970,13 +970,9 @@ void ui_action_overlay_with_tick(const char *headline, const char *subtitle,
  *   - advances head down; resets when off-screen
  * Glyph pool: printable katakana-ish via random printable chars.
  */
-/* Stock rain covers the 240-wide panel (20×6). Dual content is 320
- * wide, so the external ambient needs enough columns to span it. */
-#if POSEIDON_DUAL_SCREEN
+/* 6px cells. 20 columns only cover the left 120px of a 240-wide menu.
+ * 54 covers the internal 240 and the external 320. */
 #define MATRIX_COLS 54
-#else
-#define MATRIX_COLS 20
-#endif
 static int8_t  mx_head[MATRIX_COLS];      /* -1 = inactive */
 static uint8_t mx_speed[MATRIX_COLS];
 static char    mx_glyph[MATRIX_COLS];

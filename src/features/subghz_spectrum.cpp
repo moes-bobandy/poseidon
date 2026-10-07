@@ -67,7 +67,7 @@ static void run_bar_spectrum(const freq_range_t &range)
 
     for (int i = 0; i < bins; ++i) { smooth[i] = -110.0f; peak[i] = -110; }
 
-    M5Canvas canvas(&d);
+    M5Canvas canvas(poseidon_as_gfx(d));
     canvas.setColorDepth(16);
     bool have_canvas = canvas.createSprite(GW, GH);
 
@@ -311,7 +311,7 @@ static void run_waveform(float freq)
     /* Double-buffer both panels into one sprite. Panels are stacked
      * vertically with a 6 px gap — sprite covers rssi_panel + gap + gdo_panel. */
     const int CANVAS_H = RSSI_H + 8 + GDO_H;
-    M5Canvas canvas(&d);
+    M5Canvas canvas(poseidon_as_gfx(d));
     canvas.setColorDepth(16);
     bool have_canvas = canvas.createSprite(GW, CANVAS_H);
 
@@ -429,7 +429,7 @@ static void run_peak_hold(const freq_range_t &range)
 
     float step = (range.end - range.start) / BINS;
 
-    M5Canvas canvas(&d);
+    M5Canvas canvas(poseidon_as_gfx(d));
     canvas.setColorDepth(16);
     bool have_canvas = canvas.createSprite(GW, GH);
 

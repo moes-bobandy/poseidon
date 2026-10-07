@@ -71,33 +71,6 @@ void argus_invalidate(void)
     s_last_y    = INT32_MIN;
 }
 
-/* Argus words are pre-swapped for the ST7789 (_swapBytes false, raw
- * SPI). The ILI9341 write path matches drawPixel only for host-order
- * rgb565 with _swapBytes true. Pushing the pre-swapped buffer raw is
- * what turns the face into color noise on the external panel. */
-template<typename Disp>
-static void push_face(Disp &d, int x, int y, int h, const uint16_t *src)
-{
-#if POSEIDON_DUAL_SCREEN
-    if (poseidon_dual_ok() && poseidon_surface() == POSEIDON_SURFACE_CONTENT && src) {
-        uint16_t line[ARGUS_W];
-        bool prev = d.getSwapBytes();
-        d.setSwapBytes(true);
-        d.startWrite();
-        for (int row = 0; row < h; ++row) {
-            const uint16_t *s = src + (size_t)row * ARGUS_W;
-            for (int col = 0; col < ARGUS_W; ++col)
-                line[col] = (uint16_t)__builtin_bswap16(s[col]);
-            d.pushImage(x, y + row, ARGUS_W, 1, line);
-        }
-        d.endWrite();
-        d.setSwapBytes(prev);
-        return;
-    }
-#endif
-    d.pushImage(x, y, ARGUS_W, h, src);
-}
-
 static void overlay_lightning(const uint16_t *src, int x, int y)
 {
     auto &d = PoseidonDisplay;
@@ -108,7 +81,7 @@ static void overlay_lightning(const uint16_t *src, int x, int y)
      * per-frame flash push during STORM's heavy TX would scramble it. */
     const int STRIP = 20;
     if (src == s_ram_sprite && src)
-        push_face(d, x, y, STRIP, src);
+        d.pushImage(x, y, ARGUS_W, STRIP, src);
     int strikes = 1 + (int)(esp_random() % 2);
     for (int s = 0; s < strikes; ++s) {
         int sx = x + (esp_random() % ARGUS_W);
@@ -216,7 +189,7 @@ void argus_draw(argus_mood_t mood, int x, int y)
     const uint16_t *src = s_ram_sprite ? s_ram_sprite : ARGUS_SPRITES[idx];
     if (cur != s_last_mood || sway != s_last_sway
         || x != s_last_x || y != s_last_y) {
-        push_face(d, x, y + sway, ARGUS_H, src);
+        d.pushImage(x, y + sway, ARGUS_W, ARGUS_H, src);
         s_last_mood = cur;
         s_last_sway = sway;
         s_last_x    = x;
