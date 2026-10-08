@@ -168,6 +168,36 @@ static void teardown_current(void)
     delay(100);
 }
 
+/* WiFi teardown stops the driver but leaves its heap resident so the
+ * next STA/AP start is cheap. That block is often the reason the BLE
+ * precheck is under 48 KB, and then spam toasts "ble init failed"
+ * without ever calling NimBLEDevice::init. */
+static void release_wifi_driver_for_ble(void)
+{
+    wifi_mode_t mode = WIFI_MODE_NULL;
+    if (esp_wifi_get_mode(&mode) != ESP_OK) return;
+    esp_wifi_set_promiscuous(false);
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+    esp_wifi_deinit();
+}
+
+/* A failed enable leaves the controller INITED while NimBLE's flag
+ * stays false. The next init then dies in esp_bt_controller_init
+ * with INVALID_STATE and Bluetooth never comes up. */
+static void ble_controller_idle(void)
+{
+    esp_bt_controller_status_t st = esp_bt_controller_get_status();
+    if (st == ESP_BT_CONTROLLER_STATUS_ENABLED) {
+        esp_bt_controller_disable();
+        st = esp_bt_controller_get_status();
+    }
+    if (st == ESP_BT_CONTROLLER_STATUS_INITED) {
+        esp_bt_controller_deinit();
+        delay(100);
+    }
+}
+
 bool radio_switch(radio_domain_t target)
 {
     if (target == s_active) return true;
@@ -192,8 +222,14 @@ bool radio_switch(radio_domain_t target)
                       (int)esp_bt_controller_get_status());
         Serial.flush();
         if (!NimBLEDevice::isInitialized()) {
+            release_wifi_driver_for_ble();
             heap_reclaim_all();
+            ble_controller_idle();
+            /* EXT CS idle HIGH, and no CPU-SPI transfer in flight, before
+             * the controller allocates its block. dma_channel stays 0. */
             poseidon_lcd_quiesce();
+            delay(20);
+            heap_reclaim_all();
             size_t largest = heap_largest_internal();
             Serial.printf("[radio] BLE precheck largest=%u\n", (unsigned)largest);
             Serial.flush();
@@ -212,7 +248,10 @@ bool radio_switch(radio_domain_t target)
             Serial.printf("[radio] NimBLEDevice::init() -> %d bt_ctrl_status=%d\n",
                           (int)ok, (int)esp_bt_controller_get_status());
             Serial.flush();
-            if (!ok) return false;
+            if (!ok) {
+                ble_controller_idle();
+                return false;
+            }
         } else {
             Serial.println("[radio] NimBLE already initialized"); Serial.flush();
         }

@@ -133,6 +133,10 @@ void poseidon_lcd_quiesce(void)
     if (s_quiesce_depth == 0) {
         g_ext_display.endWrite();
         g_ext_display.waitDisplay();
+        /* GPIO, not the SPI peripheral. digitalWrite alone leaves CS
+         * low when the pin mux is still the SPI function, and NimBLE's
+         * controller init then fails. */
+        pinMode(POSEIDON_EXT_LCD_CS, OUTPUT);
         digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
     }
     s_quiesce_depth++;
@@ -146,11 +150,13 @@ void poseidon_lcd_resume_after_bus(void)
      * parks CS. It does not count as a failed wake. */
     if (s_quiesce_depth <= 0) {
         s_quiesce_depth = 0;
+        pinMode(POSEIDON_EXT_LCD_CS, OUTPUT);
         digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
         return;
     }
     s_quiesce_depth--;
     if (s_quiesce_depth == 0) {
+        pinMode(POSEIDON_EXT_LCD_CS, OUTPUT);
         digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
         delay(2);
     }
