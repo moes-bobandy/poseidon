@@ -168,18 +168,23 @@ static void teardown_current(void)
     delay(100);
 }
 
-/* WiFi teardown stops the driver but leaves its heap resident so the
- * next STA/AP start is cheap. That block is often the reason the BLE
- * precheck is under 48 KB, and then spam toasts "ble init failed"
- * without ever calling NimBLEDevice::init. */
+/* Last-resort heap return for the 48 KB BLE gate. Not used on every
+ * BLE entry — POS-AUDIT-008 bans deinit on ordinary session churn.
+ *
+ * WiFi.mode(WIFI_OFF) is Arduino's tracked shutdown: WiFiGeneric.cpp
+ * espWiFiStop() calls wifiLowLevelDeinit(), which clears lowLevelInitDone
+ * and only then calls esp_wifi_deinit(). A raw esp_wifi_deinit() leaves
+ * that flag set, so the next WiFi.mode(STA/AP) skips init.
+ *
+ * If the driver was brought up by wifi_lean_sta_init, Arduino's
+ * lowLevelInitDone is already false. getMode() then returns NULL and
+ * mode(WIFI_OFF) is a no-op. Those features re-init themselves
+ * (wifi_lean_sta_init's fresh esp_wifi_init, portal's stop/deinit/init). */
 static void release_wifi_driver_for_ble(void)
 {
     wifi_mode_t mode = WIFI_MODE_NULL;
     if (esp_wifi_get_mode(&mode) != ESP_OK) return;
-    esp_wifi_set_promiscuous(false);
-    esp_wifi_disconnect();
-    esp_wifi_stop();
-    esp_wifi_deinit();
+    WiFi.mode(WIFI_OFF);
 }
 
 /* A failed enable leaves the controller INITED while NimBLE's flag
@@ -222,20 +227,30 @@ bool radio_switch(radio_domain_t target)
                       (int)esp_bt_controller_get_status());
         Serial.flush();
         if (!NimBLEDevice::isInitialized()) {
-            release_wifi_driver_for_ble();
             heap_reclaim_all();
             ble_controller_idle();
             /* EXT CS idle HIGH, and no CPU-SPI transfer in flight, before
              * the controller allocates its block. dma_channel stays 0. */
             poseidon_lcd_quiesce();
-            delay(20);
             heap_reclaim_all();
             size_t largest = heap_largest_internal();
             Serial.printf("[radio] BLE precheck largest=%u\n", (unsigned)largest);
             Serial.flush();
             /* NimBLE's controller bring-up asserts instead of returning
              * when the largest internal block is too small. Bail before
-             * that so opening Spam does not reset the device. */
+             * that so opening Spam does not reset the device. Release
+             * Wi-Fi only when this precheck is still short. */
+            if (largest < 48 * 1024) {
+                Serial.println("[radio] BLE heap short — WiFi.mode(OFF)");
+                Serial.flush();
+                release_wifi_driver_for_ble();
+                delay(20);
+                heap_reclaim_all();
+                largest = heap_largest_internal();
+                Serial.printf("[radio] BLE precheck after wifi release largest=%u\n",
+                              (unsigned)largest);
+                Serial.flush();
+            }
             if (largest < 48 * 1024) {
                 Serial.println("[radio] BLE init skipped — heap");
                 Serial.flush();
