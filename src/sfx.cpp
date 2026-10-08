@@ -56,31 +56,34 @@ static bool    s_mute = false;
 static bool    s_inited = false;
 
 /* ES8311 DAC volume, register 0x32 at I2C 0x18.
- * Datasheet: 0.5 dB per count, 0xBF = 0 dB, 0x00 = -95.5 dB (mute).
- * Levels 1..10 are even 3.5 dB steps from -31.5 dB to 0 dB
- * (7 counts × 0.5 dB). The old linear map started at 0x20, so level 1
- * was about -72 dB and only 8–10 were audible.
+ * Datasheet: 0.5 dB per count, 0xBF = 0 dB, 0x00 = mute.
+ * Nine equal whole-count steps cannot span 0x80 (−31.5 dB) to about
+ * −20 dB. Counts alternate +2, +3 from level 1 so level 10 is 0x96
+ * (−20.5 dB), next to the old level-4 loudness. A flat +3 each step
+ * would land at −18 dB, which was already too loud.
  *
- *   level   dB      reg
+ *   level   dB      reg    step into this level
  *   0       mute    0x00
  *   1      -31.5    0x80
- *   2      -28.0    0x87
- *   3      -24.5    0x8E
- *   4      -21.0    0x95
- *   5      -17.5    0x9C
- *   6      -14.0    0xA3
- *   7      -10.5    0xAA
- *   8       -7.0    0xB1
- *   9       -3.5    0xB8
- *   10       0.0    0xBF
+ *   2      -30.5    0x82   +2
+ *   3      -29.0    0x85   +3
+ *   4      -28.0    0x87   +2
+ *   5      -26.5    0x8A   +3
+ *   6      -25.5    0x8C   +2
+ *   7      -24.0    0x8F   +3
+ *   8      -23.0    0x91   +2
+ *   9      -21.5    0x94   +3
+ *   10     -20.5    0x96   +2
  *
- * Speaker.setVolume stays at full scale for levels 1–10. A second
- * software curve stacked on this table and crushed the low end. */
+ * Speaker.setVolume stays at full scale (255) for levels 1–10 and 0
+ * when muted. Software gain does not stack on this table. */
 static uint8_t es8311_dac_reg(uint8_t level)
 {
-    if (level == 0) return 0x00;
+    static const uint8_t table[11] = {
+        0x00, 0x80, 0x82, 0x85, 0x87, 0x8A, 0x8C, 0x8F, 0x91, 0x94, 0x96
+    };
     if (level > 10) level = 10;
-    return (uint8_t)(0xBF - (10 - level) * 7);
+    return table[level];
 }
 
 static void apply_volume(void)
