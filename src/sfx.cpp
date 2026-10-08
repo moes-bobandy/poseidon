@@ -56,31 +56,30 @@ static bool    s_mute = false;
 static bool    s_inited = false;
 
 /* ES8311 DAC volume, register 0x32 at I2C 0x18.
- * Datasheet: 0.5 dB per count, 0xBF = 0 dB, 0x00 = mute.
- * Nine equal whole-count steps cannot span 0x80 (−31.5 dB) to about
- * −20 dB. Counts alternate +2, +3 from level 1 so level 10 is 0x96
- * (−20.5 dB), next to the old level-4 loudness. A flat +3 each step
- * would land at −18 dB, which was already too loud.
+ * dB = (reg - 0xBF) * 0.5, with 0xBF = 0 dB and 0x00 = mute.
+ * Levels 1..10 alternate +2, +1 counts and stop at 0x8A (−26.5 dB).
+ * That cap is the loudest step. Boot default s_volume is 5, so a fresh
+ * start writes 0x82 (−30.5 dB).
  *
  *   level   dB      reg    step into this level
  *   0       mute    0x00
- *   1      -31.5    0x80
- *   2      -30.5    0x82   +2
- *   3      -29.0    0x85   +3
- *   4      -28.0    0x87   +2
- *   5      -26.5    0x8A   +3
- *   6      -25.5    0x8C   +2
- *   7      -24.0    0x8F   +3
- *   8      -23.0    0x91   +2
- *   9      -21.5    0x94   +3
- *   10     -20.5    0x96   +2
+ *   1      -33.5    0x7C
+ *   2      -32.5    0x7E   +2
+ *   3      -32.0    0x7F   +1
+ *   4      -31.0    0x81   +2
+ *   5      -30.5    0x82   +1
+ *   6      -29.5    0x84   +2
+ *   7      -29.0    0x85   +1
+ *   8      -28.0    0x87   +2
+ *   9      -27.5    0x88   +1
+ *   10     -26.5    0x8A   +2
  *
  * Speaker.setVolume stays at full scale (255) for levels 1–10 and 0
  * when muted. Software gain does not stack on this table. */
 static uint8_t es8311_dac_reg(uint8_t level)
 {
     static const uint8_t table[11] = {
-        0x00, 0x80, 0x82, 0x85, 0x87, 0x8A, 0x8C, 0x8F, 0x91, 0x94, 0x96
+        0x00, 0x7C, 0x7E, 0x7F, 0x81, 0x82, 0x84, 0x85, 0x87, 0x88, 0x8A
     };
     if (level > 10) level = 10;
     return table[level];
