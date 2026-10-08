@@ -168,23 +168,31 @@ static void teardown_current(void)
     delay(100);
 }
 
-/* Last-resort heap return for the 48 KB BLE gate. Not used on every
- * BLE entry — POS-AUDIT-008 bans deinit on ordinary session churn.
+/* Last-resort heap return for the 48 KB BLE gate. The caller measures
+ * first and invokes this only when the largest block is still short, so
+ * it is not the every-session deinit POS-AUDIT-008 bans.
  *
- * WiFi.mode(WIFI_OFF) is Arduino's tracked shutdown: WiFiGeneric.cpp
- * espWiFiStop() calls wifiLowLevelDeinit(), which clears lowLevelInitDone
- * and only then calls esp_wifi_deinit(). A raw esp_wifi_deinit() leaves
- * that flag set, so the next WiFi.mode(STA/AP) skips init.
+ * Branch 1 — Arduino owns the stack (lowLevelInitDone && started).
+ * WiFi.getMode() is not NULL. WiFi.mode(WIFI_OFF) → espWiFiStop() →
+ * wifiLowLevelDeinit(), which clears lowLevelInitDone and then
+ * esp_wifi_deinit(). A raw deinit here would leave that flag set.
  *
- * If the driver was brought up by wifi_lean_sta_init, Arduino's
- * lowLevelInitDone is already false. getMode() then returns NULL and
- * mode(WIFI_OFF) is a no-op. Those features re-init themselves
- * (wifi_lean_sta_init's fresh esp_wifi_init, portal's stop/deinit/init). */
+ * Branch 2 — raw IDF owns the stack (wifi_lean_sta_init, beacon spam).
+ * getMode() is NULL because lowLevelInitDone is already false, but
+ * esp_wifi_get_mode() still returns ESP_OK. stop + deinit is safe;
+ * Arduino state cannot desync. After either branch, esp_wifi_get_mode()
+ * is NOT_INIT, so wifi_lean_sta_init takes the fresh esp_wifi_init at
+ * the bottom of this file and the portal calls esp_wifi_init again. */
 static void release_wifi_driver_for_ble(void)
 {
+    if (WiFi.getMode() != WIFI_MODE_NULL) {
+        WiFi.mode(WIFI_OFF);
+        return;
+    }
     wifi_mode_t mode = WIFI_MODE_NULL;
     if (esp_wifi_get_mode(&mode) != ESP_OK) return;
-    WiFi.mode(WIFI_OFF);
+    esp_wifi_stop();
+    esp_wifi_deinit();
 }
 
 /* A failed enable leaves the controller INITED while NimBLE's flag
