@@ -298,14 +298,12 @@ bool radio_switch(radio_domain_t target)
             Serial.printf("[radio] wifi_used=%d (does not gate the reboot)\n",
                           (int)wifi_used);
             Serial.flush();
-            /* Heap inventory, in order. The 240x135 framebuffer from
-             * M5Cardputer.begin is about 60 KB and is not on this list:
-             * freeing it would blank the panel. ui.cpp's ~64 KB canvas
-             * is allocated only inside an overlay and is already gone
-             * by the time a menu item runs. What can be freed:
-             * screensaver sprite (~154 KB, only if the saver was up),
-             * Argus's 96x96 sprite (~18 KB) via heap_reclaim_all,
-             * the SD FAT buffers, then leftover Wi-Fi / lwIP. */
+            /* Heap inventory, in order. ui.cpp's canvas is allocated
+             * only inside an overlay and is already gone by the time a
+             * menu item runs. What can be freed: screensaver sprite
+             * (~154 KB, only if the saver was up), Argus's 96x96 sprite
+             * (~18 KB) via heap_reclaim_all, the SD FAT buffers, then
+             * leftover Wi-Fi / lwIP. */
             bool ss_freed = screensaver_free_sprite();
             s_L_ss = heap_largest_internal();
             Serial.printf("[radio] screensaver sprite freed=%d Lss=%u\n",
@@ -381,13 +379,17 @@ bool radio_switch(radio_domain_t target)
 
 void radio_ble_fresh_boot(void)
 {
-    if (s_ble_boot_magic != BLE_BOOT_MAGIC) return;
+    /* RTC_NOINIT survives power-off as garbage. A boot that is not the
+     * one-shot BLE restart must not increment that leftover. */
+    if (s_ble_boot_magic != BLE_BOOT_MAGIC) {
+        s_ble_boot_count = 0;
+        return;
+    }
     s_ble_boot_magic = 0;
     s_rb_count = s_ble_boot_count;
     s_in_fresh_boot = true;
     s_launch_spam = true;
-    /* Called before M5Cardputer.begin, so the ~60 KB framebuffer is
-     * not allocated yet. SD and Wi-Fi have not run either. */
+    /* Called before M5Cardputer.begin. SD and Wi-Fi have not run. */
     Serial.printf("[radio] BLE-only boot largest=%u rb=%u\n",
                   (unsigned)heap_largest_internal(), (unsigned)s_rb_count);
     Serial.flush();

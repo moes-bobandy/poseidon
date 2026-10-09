@@ -102,6 +102,10 @@ void sd_drop_for_ble(void)
     if (!s_mounted) return;
     SD.end();
     sd_spi.end();
+    /* sd_spi.end() releases the pin mux. Drive CS high so the card
+     * stays deselected on the shared bus. */
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(SD_CS, HIGH);
     s_mounted = false;
 }
 

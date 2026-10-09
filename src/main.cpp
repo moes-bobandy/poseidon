@@ -107,12 +107,17 @@ void setup()
 #endif
 
     /* BLE spam's one-shot restart lands here with the RTC flag set.
-     * Start the controller before M5Cardputer.begin takes the ~60 KB
-     * framebuffer. That block is what left the largest free chunk at
-     * 45,044 bytes (4,108 bytes under the 48 KB gate) on a spam entry
-     * that had never used Wi-Fi. */
+     * Bring the controller up before M5Cardputer.begin and before the
+     * dual panel init. */
     Serial.begin(115200);
     hb_install_esp_query();
+#if POSEIDON_DUAL_SCREEN
+    /* poseidon_lcd_quiesce() is a no-op until the panel is up, so park
+     * EXT CS idle HIGH here, before the controller allocates.
+     * dma_channel stays 0. */
+    pinMode(POSEIDON_EXT_LCD_CS, OUTPUT);
+    digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
+#endif
     radio_ble_fresh_boot();
 
     auto cfg = M5.config();
@@ -132,8 +137,6 @@ void setup()
 #if !POSEIDON_DUAL_SCREEN
     PoseidonDisplay.setRotation(1);  /* landscape, keyboard at the bottom */
 #endif
-    Serial.begin(115200);
-    hb_install_esp_query();
     heap_census();
     delay(100);
     Serial.printf("\n[POSEIDON] %s (%s) boot\n",
