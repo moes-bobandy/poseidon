@@ -9,6 +9,7 @@
 #include "heap_budget.h"
 #include "display/poseidon_display.h"
 #include "screensaver.h"
+#include "sd_helper.h"
 #include <WiFi.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
@@ -21,15 +22,22 @@ static radio_domain_t s_active = RADIO_NONE;
 static bool s_wifi_used = false;
 /* Survives esp_restart(), not a power cycle. */
 RTC_NOINIT_ATTR static uint32_t s_ble_boot_magic;
+RTC_NOINIT_ATTR static uint32_t s_ble_boot_count;
 static const uint32_t BLE_BOOT_MAGIC = 0xB1E0B007u;
 static bool s_in_fresh_boot = false;
 static bool s_launch_spam = false;
-static char s_ble_diag[72] = "ble idle";
+static char s_ble_diag[160] = "ble idle";
+static size_t s_L_ss = 0, s_L_rc = 0, s_L_sd = 0, s_L_wf = 0, s_L_init = 0;
+static int s_nim_rc = -1, s_bt_st = 0;
+static uint32_t s_rb_count = 0;
 
-static void ble_mark(const char *tag, size_t largest, int nim, int st)
+static void ble_diag_publish(void)
 {
-    snprintf(s_ble_diag, sizeof(s_ble_diag), "%s L=%u n=%d st=%d",
-             tag, (unsigned)largest, nim, st);
+    snprintf(s_ble_diag, sizeof(s_ble_diag),
+             "ss=%u rc=%u\nsd=%u wf=%u\nL=%u n=%d st=%d\nrb=%u",
+             (unsigned)s_L_ss, (unsigned)s_L_rc,
+             (unsigned)s_L_sd, (unsigned)s_L_wf,
+             (unsigned)s_L_init, s_nim_rc, s_bt_st, (unsigned)s_rb_count);
     Serial.printf("[radio] %s\n", s_ble_diag);
     Serial.flush();
 }
@@ -52,8 +60,14 @@ static bool wifi_was_used(void)
 
 static void ble_request_fresh_boot(const char *why)
 {
+    /* One auto-reboot per spam entry. The post-reboot attempt sets
+     * s_in_fresh_boot and must stay up and show the toast if it fails. */
     if (s_in_fresh_boot) return;
-    Serial.printf("[radio] BLE fresh-heap restart (%s) %s\n", why, s_ble_diag);
+    s_ble_boot_count++;
+    s_rb_count = s_ble_boot_count;
+    ble_diag_publish();
+    Serial.printf("[radio] BLE fresh-heap restart (%s) rb=%u\n",
+                  why, (unsigned)s_rb_count);
     Serial.flush();
     poseidon_lcd_resume_after_bus();
     s_ble_boot_magic = BLE_BOOT_MAGIC;
@@ -281,59 +295,71 @@ bool radio_switch(radio_domain_t target)
         Serial.flush();
         if (!NimBLEDevice::isInitialized()) {
             bool wifi_used = wifi_was_used();
-            int st0 = (int)esp_bt_controller_get_status();
-            ble_mark("entry", heap_largest_internal(), -1, st0);
-            /* Argus's 18 KB DMA sprite is freed here when a draw has
-             * registered heap_argus_release. The screensaver sprite is
-             * not on that list — free it explicitly first. */
+            Serial.printf("[radio] wifi_used=%d (does not gate the reboot)\n",
+                          (int)wifi_used);
+            Serial.flush();
+            /* Heap inventory, in order. The 240x135 framebuffer from
+             * M5Cardputer.begin is about 60 KB and is not on this list:
+             * freeing it would blank the panel. ui.cpp's ~64 KB canvas
+             * is allocated only inside an overlay and is already gone
+             * by the time a menu item runs. What can be freed:
+             * screensaver sprite (~154 KB, only if the saver was up),
+             * Argus's 96x96 sprite (~18 KB) via heap_reclaim_all,
+             * the SD FAT buffers, then leftover Wi-Fi / lwIP. */
             bool ss_freed = screensaver_free_sprite();
-            size_t after_ss = heap_largest_internal();
-            Serial.printf("[radio] screensaver sprite freed=%d largest=%u\n",
-                          (int)ss_freed, (unsigned)after_ss);
+            s_L_ss = heap_largest_internal();
+            Serial.printf("[radio] screensaver sprite freed=%d Lss=%u\n",
+                          (int)ss_freed, (unsigned)s_L_ss);
             Serial.flush();
             heap_reclaim_all();
-            ble_mark("reclaim", heap_largest_internal(), -1, st0);
-            ble_controller_idle();
-            ble_mark("idle", heap_largest_internal(), -1,
-                     (int)esp_bt_controller_get_status());
-            /* EXT CS idle HIGH, and no CPU-SPI transfer in flight, before
-             * the controller allocates its block. dma_channel stays 0. */
+            s_L_rc = heap_largest_internal();
+            /* EXT CS idle HIGH before any SPI release or the controller
+             * allocation. dma_channel stays 0. */
             poseidon_lcd_quiesce();
-            heap_reclaim_all();
-            size_t largest = heap_largest_internal();
-            ble_mark("gate", largest, -1,
-                     (int)esp_bt_controller_get_status());
-            /* NimBLE's controller bring-up asserts instead of returning
-             * when the largest internal block is too small. Bail before
-             * that so opening Spam does not reset the device. Release
-             * Wi-Fi only when this precheck is still short. */
-            if (largest < 48 * 1024) {
+            s_L_sd = s_L_rc;
+            if (s_L_sd < 48 * 1024) {
+                sd_drop_for_ble();
+                heap_reclaim_all();
+                s_L_sd = heap_largest_internal();
+            }
+            ble_controller_idle();
+            s_L_wf = s_L_sd;
+            if (s_L_wf < 48 * 1024) {
                 release_wifi_driver_for_ble();
                 delay(20);
                 heap_reclaim_all();
-                largest = heap_largest_internal();
-                ble_mark("wifirel", largest, -1,
-                         (int)esp_bt_controller_get_status());
+                s_L_wf = heap_largest_internal();
             }
-            if (largest < 48 * 1024) {
+            s_L_init = s_L_wf;
+            s_nim_rc = -1;
+            s_bt_st = (int)esp_bt_controller_get_status();
+            /* NimBLE asserts when the largest internal block is too
+             * small. One clean-heap reboot, whether or not Wi-Fi was
+             * used. A second failure in the same entry stays up. */
+            if (s_L_init < 48 * 1024) {
                 poseidon_lcd_resume_after_bus();
-                if (wifi_used) ble_request_fresh_boot("heap");
+                ble_request_fresh_boot("heap");
+                ble_diag_publish();
                 return false;
             }
-            int st_before = (int)esp_bt_controller_get_status();
+            int st_before = s_bt_st;
             bool ok = NimBLEDevice::init("");
             int st_after = (int)esp_bt_controller_get_status();
             poseidon_lcd_resume_after_bus();
             /* NimBLE swallows esp_bt_controller_enable's esp_err_t.
              * st is the observable result: 0 IDLE (init rejected),
              * 1 INITED (enable failed), 2 ENABLED. n is NimBLE's bool. */
-            ble_mark("init", heap_largest_internal(), (int)ok, st_after);
+            s_L_init = heap_largest_internal();
+            s_nim_rc = (int)ok;
+            s_bt_st = st_after;
+            ble_diag_publish();
             Serial.printf("[radio] enable-stage before=%d after=%d nim=%d\n",
                           st_before, st_after, (int)ok);
             Serial.flush();
             if (!ok || st_after != (int)ESP_BT_CONTROLLER_STATUS_ENABLED) {
                 ble_controller_idle();
-                if (wifi_used) ble_request_fresh_boot("init");
+                ble_request_fresh_boot("init");
+                ble_diag_publish();
                 return false;
             }
         } else {
@@ -357,12 +383,13 @@ void radio_ble_fresh_boot(void)
 {
     if (s_ble_boot_magic != BLE_BOOT_MAGIC) return;
     s_ble_boot_magic = 0;
+    s_rb_count = s_ble_boot_count;
     s_in_fresh_boot = true;
     s_launch_spam = true;
-    /* Display is already up via the normal poseidon_dual_begin path.
-     * Start the controller before SD or Wi-Fi touch the heap. */
-    Serial.printf("[radio] BLE-only boot largest=%u\n",
-                  (unsigned)heap_largest_internal());
+    /* Called before M5Cardputer.begin, so the ~60 KB framebuffer is
+     * not allocated yet. SD and Wi-Fi have not run either. */
+    Serial.printf("[radio] BLE-only boot largest=%u rb=%u\n",
+                  (unsigned)heap_largest_internal(), (unsigned)s_rb_count);
     Serial.flush();
     (void)radio_switch(RADIO_BLE);
 }

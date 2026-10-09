@@ -177,7 +177,13 @@ void feat_ble_spam(void)
     /* radio_switch brings NimBLE up once, and refuses when the heap
      * cannot hold the controller (that path used to reset the device). */
     if (!radio_switch(RADIO_BLE) || !NimBLEDevice::isInitialized()) {
-        ui_toast(radio_ble_diag(), T_BAD, 2500);
+        ui_force_clear_body();
+        auto &d = PoseidonDisplay;
+        d.setTextSize(1);
+        d.setTextColor(T_BAD, T_BG);
+        d.setCursor(4, BODY_Y + 2);
+        d.print(radio_ble_diag());
+        delay(4500);
         return;
     }
     spam_kind_t k = pick_kind();

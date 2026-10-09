@@ -97,6 +97,14 @@ bool sd_mount(void)
     return false;
 }
 
+void sd_drop_for_ble(void)
+{
+    if (!s_mounted) return;
+    SD.end();
+    sd_spi.end();
+    s_mounted = false;
+}
+
 File sdlog_open(const char *stem, const char *header_line,
                 char *out_path, size_t out_path_sz)
 {

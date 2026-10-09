@@ -56,31 +56,32 @@ static bool    s_mute = false;
 static bool    s_inited = false;
 
 /* ES8311 DAC volume, register 0x32 at I2C 0x18.
- * dB = (reg - 0xBF) * 0.5, with 0xBF = 0 dB and 0x00 = mute.
- * Levels 1..10 step by a constant +2 counts (+1.0 dB) and stop at
- * 0x8C (−25.5 dB). That cap is the loudest step. Boot default
- * s_volume is 5, so a fresh start writes 0x82 (−30.5 dB). The intro
- * jingle does not use this table; play_boot() scales the speaker alone.
+ * dB = (reg - 0xBF) * 0.5. 0xBF = 0 dB. 0x00 is mute at -95.5 dB. Level 10 is
+ * 0x8F (-24.0 dB), three 0.5 dB steps above the previous cap 0x8C
+ * (-25.5 dB): amplitude x 10^(1.5/20) = x1.189, about +19 percent.
+ * The nine gaps from 0x7A to 0x8F are 21 counts, spread as +2/+3.
+ * Boot default s_volume is 5, so a fresh start writes 0x83 (-30.0 dB).
+ * The intro does not use this table; play_boot() scales the speaker.
  *
  *   level   dB      reg
  *   0       mute    0x00
  *   1      -34.5    0x7A
  *   2      -33.5    0x7C
- *   3      -32.5    0x7E
- *   4      -31.5    0x80
- *   5      -30.5    0x82
- *   6      -29.5    0x84
- *   7      -28.5    0x86
- *   8      -27.5    0x88
- *   9      -26.5    0x8A
- *   10     -25.5    0x8C
+ *   3      -32.0    0x7F
+ *   4      -31.0    0x81
+ *   5      -30.0    0x83
+ *   6      -28.5    0x86
+ *   7      -27.5    0x88
+ *   8      -26.5    0x8A
+ *   9      -25.0    0x8D
+ *   10     -24.0    0x8F
  *
  * Speaker.setVolume stays at full scale (255) for levels 1–10 and 0
  * when muted. Software gain does not stack on this table. */
 static uint8_t es8311_dac_reg(uint8_t level)
 {
     static const uint8_t table[11] = {
-        0x00, 0x7A, 0x7C, 0x7E, 0x80, 0x82, 0x84, 0x86, 0x88, 0x8A, 0x8C
+        0x00, 0x7A, 0x7C, 0x7F, 0x81, 0x83, 0x86, 0x88, 0x8A, 0x8D, 0x8F
     };
     if (level > 10) level = 10;
     return table[level];
@@ -300,11 +301,15 @@ static void play_cracked(void)
 
 static void play_boot(void)
 {
-    /* Intro only: 70% of full-scale speaker gain (255 * 0.7 = 178).
-     * The ES8311 register stays at the saved level — do not write 0x32
-     * here (this task shares I2C with the TCA8418). apply_volume()
-     * restores speaker gain from s_volume / mute, not a hard-coded 255. */
-    M5Cardputer.Speaker.setVolume(178);
+    /* Intro only, 20% quieter than c8279971.
+     * That tip used Speaker.setVolume(178) at boot DAC 0x82 (-30.5 dB).
+     * 178 * 0.80 = 142.4. This table's boot level 5 is 0x83 (-30.0 dB),
+     * one 0.5 dB step louder: amplitude x 10^(0.5/20) = x1.05925.
+     * 142.4 / 1.05925 = 134.4, so the speaker is set to 134. Net
+     * amplitude is 0.80 times that tip. No ES8311 write here — this
+     * task shares I2C with the TCA8418. apply_volume() restores the
+     * saved speaker gain afterwards (0 if muted, else 255). */
+    M5Cardputer.Speaker.setVolume(134);
     /* Power-on sequence — sub-bass heartbeat, modem handshake, chord bloom.
      *   1. Two sub-bass pulses  — deep, "waking up"
      *   2. Modem-handshake texture (rapid alternating pitches)

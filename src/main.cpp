@@ -106,6 +106,15 @@ void setup()
     delay(5);
 #endif
 
+    /* BLE spam's one-shot restart lands here with the RTC flag set.
+     * Start the controller before M5Cardputer.begin takes the ~60 KB
+     * framebuffer. That block is what left the largest free chunk at
+     * 45,044 bytes (4,108 bytes under the 48 KB gate) on a spam entry
+     * that had never used Wi-Fi. */
+    Serial.begin(115200);
+    hb_install_esp_query();
+    radio_ble_fresh_boot();
+
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
     /* Safety belt: force the I2C (TCA8418) keyboard reader even if
@@ -147,9 +156,6 @@ void setup()
         Serial.println("[POSEIDON] dual-screen panel absent — UI on internal");
     }
 #endif
-    /* Same display init as every boot. If BLE spam asked for a fresh
-     * heap, bring the controller up before SD. */
-    radio_ble_fresh_boot();
 
     /* Mount SD on boot if a card is present. Non-fatal if absent. */
     if (sd_mount()) Serial.println("[POSEIDON] sd mounted");
