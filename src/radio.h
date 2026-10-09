@@ -43,3 +43,15 @@ void wifi_force_clean_sta(void);
  * by this call). Every WiFi-feature should call this BEFORE
  * esp_wifi_set_promiscuous / scan_start / etc. */
 bool wifi_lean_sta_init(void);
+
+/* Last BLE attempt: largest block, NimBLE init rc, controller status.
+ * Shown on the spam toast when init does not come up. */
+const char *radio_ble_diag(void);
+
+/* Called from setup after the normal display begin (same
+ * poseidon_dual_begin path) and before SD. Starts BLE when a spam
+ * entry asked for a fresh heap. */
+void radio_ble_fresh_boot(void);
+
+/* True once after a fresh-heap reboot so the menu opens BLE spam. */
+bool radio_ble_launch_pending(void);

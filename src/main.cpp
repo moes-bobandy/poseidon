@@ -147,6 +147,9 @@ void setup()
         Serial.println("[POSEIDON] dual-screen panel absent — UI on internal");
     }
 #endif
+    /* Same display init as every boot. If BLE spam asked for a fresh
+     * heap, bring the controller up before SD. */
+    radio_ble_fresh_boot();
 
     /* Mount SD on boot if a card is present. Non-fatal if absent. */
     if (sd_mount()) Serial.println("[POSEIDON] sd mounted");
@@ -253,6 +256,16 @@ void loop()
         poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
 #endif
         feat_kerberos();
+    }
+    if (radio_ble_launch_pending()) {
+        extern void feat_ble_spam(void);
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+#endif
+        feat_ble_spam();
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_MENU);
+#endif
     }
     menu_run();
     /* menu_run only returns on a quit — rare. Fall through to a

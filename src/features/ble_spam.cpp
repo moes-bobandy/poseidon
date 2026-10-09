@@ -177,7 +177,7 @@ void feat_ble_spam(void)
     /* radio_switch brings NimBLE up once, and refuses when the heap
      * cannot hold the controller (that path used to reset the device). */
     if (!radio_switch(RADIO_BLE) || !NimBLEDevice::isInitialized()) {
-        ui_toast("ble init failed", T_BAD, 1500);
+        ui_toast(radio_ble_diag(), T_BAD, 2500);
         return;
     }
     spam_kind_t k = pick_kind();

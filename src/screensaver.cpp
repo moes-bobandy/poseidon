@@ -79,16 +79,25 @@ static void ss_acquire(void)
                   (unsigned)SS_SPRITE_BYTES, (unsigned)largest);
 }
 
-static void ss_release(void)
+bool screensaver_free_sprite(void)
 {
     ui_matrix_rain_target(nullptr);
-    if (s_ss) {
-        s_ss->deleteSprite();
-        delete s_ss;
-        s_ss = nullptr;
+    if (!s_ss) {
+        Serial.println("[ss] sprite free: none held");
+        return false;
     }
+    Serial.printf("[ss] sprite free %u bytes\n", (unsigned)SS_SPRITE_BYTES);
+    s_ss->deleteSprite();
+    delete s_ss;
+    s_ss = nullptr;
     s_dirty_n = 0;
     s_ss_primed = false;
+    return true;
+}
+
+static void ss_release(void)
+{
+    (void)screensaver_free_sprite();
     if (poseidon_dual_ok()) poseidon_ext_bus_idle();
 }
 

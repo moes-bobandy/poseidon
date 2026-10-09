@@ -8,7 +8,9 @@
 #include "gps.h"
 #include "heap_budget.h"
 #include "display/poseidon_display.h"
+#include "screensaver.h"
 #include <WiFi.h>
+#include <esp_system.h>
 #include <esp_wifi.h>
 #include <esp_netif.h>
 #include <esp_event.h>
@@ -16,6 +18,47 @@
 #include <NimBLEDevice.h>
 
 static radio_domain_t s_active = RADIO_NONE;
+static bool s_wifi_used = false;
+/* Survives esp_restart(), not a power cycle. */
+RTC_NOINIT_ATTR static uint32_t s_ble_boot_magic;
+static const uint32_t BLE_BOOT_MAGIC = 0xB1E0B007u;
+static bool s_in_fresh_boot = false;
+static bool s_launch_spam = false;
+static char s_ble_diag[72] = "ble idle";
+
+static void ble_mark(const char *tag, size_t largest, int nim, int st)
+{
+    snprintf(s_ble_diag, sizeof(s_ble_diag), "%s L=%u n=%d st=%d",
+             tag, (unsigned)largest, nim, st);
+    Serial.printf("[radio] %s\n", s_ble_diag);
+    Serial.flush();
+}
+
+const char *radio_ble_diag(void) { return s_ble_diag; }
+
+bool radio_ble_launch_pending(void)
+{
+    bool p = s_launch_spam;
+    s_launch_spam = false;
+    return p;
+}
+
+static bool wifi_was_used(void)
+{
+    if (s_wifi_used) return true;
+    wifi_mode_t mode = WIFI_MODE_NULL;
+    return esp_wifi_get_mode(&mode) == ESP_OK;
+}
+
+static void ble_request_fresh_boot(const char *why)
+{
+    if (s_in_fresh_boot) return;
+    Serial.printf("[radio] BLE fresh-heap restart (%s) %s\n", why, s_ble_diag);
+    Serial.flush();
+    poseidon_lcd_resume_after_bus();
+    s_ble_boot_magic = BLE_BOOT_MAGIC;
+    esp_restart();
+}
 
 void wifi_force_clean_sta(void)
 {
@@ -34,6 +77,7 @@ void wifi_force_clean_sta(void)
 
 bool wifi_lean_sta_init(void)
 {
+    s_wifi_used = true;
     /* If WiFi is already inited (we got here from another feature in
      * the same session), just ensure mode is STA + started.
      * esp_wifi_get_mode returns ESP_OK only after esp_wifi_init has run.
@@ -219,6 +263,7 @@ bool radio_switch(radio_domain_t target)
 
     switch (target) {
     case RADIO_WIFI:
+        s_wifi_used = true;
         /* State-only switch — don't touch WiFi here. Calling WiFi.mode(WIFI_STA)
          * left the driver in a half-init state ("STA not started!" warning
          * on disconnect), then any later WiFi.mode(WIFI_AP) crashed in
@@ -235,44 +280,60 @@ bool radio_switch(radio_domain_t target)
                       (int)esp_bt_controller_get_status());
         Serial.flush();
         if (!NimBLEDevice::isInitialized()) {
+            bool wifi_used = wifi_was_used();
+            int st0 = (int)esp_bt_controller_get_status();
+            ble_mark("entry", heap_largest_internal(), -1, st0);
+            /* Argus's 18 KB DMA sprite is freed here when a draw has
+             * registered heap_argus_release. The screensaver sprite is
+             * not on that list — free it explicitly first. */
+            bool ss_freed = screensaver_free_sprite();
+            size_t after_ss = heap_largest_internal();
+            Serial.printf("[radio] screensaver sprite freed=%d largest=%u\n",
+                          (int)ss_freed, (unsigned)after_ss);
+            Serial.flush();
             heap_reclaim_all();
+            ble_mark("reclaim", heap_largest_internal(), -1, st0);
             ble_controller_idle();
+            ble_mark("idle", heap_largest_internal(), -1,
+                     (int)esp_bt_controller_get_status());
             /* EXT CS idle HIGH, and no CPU-SPI transfer in flight, before
              * the controller allocates its block. dma_channel stays 0. */
             poseidon_lcd_quiesce();
             heap_reclaim_all();
             size_t largest = heap_largest_internal();
-            Serial.printf("[radio] BLE precheck largest=%u\n", (unsigned)largest);
-            Serial.flush();
+            ble_mark("gate", largest, -1,
+                     (int)esp_bt_controller_get_status());
             /* NimBLE's controller bring-up asserts instead of returning
              * when the largest internal block is too small. Bail before
              * that so opening Spam does not reset the device. Release
              * Wi-Fi only when this precheck is still short. */
             if (largest < 48 * 1024) {
-                Serial.println("[radio] BLE heap short — WiFi.mode(OFF)");
-                Serial.flush();
                 release_wifi_driver_for_ble();
                 delay(20);
                 heap_reclaim_all();
                 largest = heap_largest_internal();
-                Serial.printf("[radio] BLE precheck after wifi release largest=%u\n",
-                              (unsigned)largest);
-                Serial.flush();
+                ble_mark("wifirel", largest, -1,
+                         (int)esp_bt_controller_get_status());
             }
             if (largest < 48 * 1024) {
-                Serial.println("[radio] BLE init skipped — heap");
-                Serial.flush();
                 poseidon_lcd_resume_after_bus();
+                if (wifi_used) ble_request_fresh_boot("heap");
                 return false;
             }
-            Serial.println("[radio] NimBLEDevice::init() begin"); Serial.flush();
+            int st_before = (int)esp_bt_controller_get_status();
             bool ok = NimBLEDevice::init("");
+            int st_after = (int)esp_bt_controller_get_status();
             poseidon_lcd_resume_after_bus();
-            Serial.printf("[radio] NimBLEDevice::init() -> %d bt_ctrl_status=%d\n",
-                          (int)ok, (int)esp_bt_controller_get_status());
+            /* NimBLE swallows esp_bt_controller_enable's esp_err_t.
+             * st is the observable result: 0 IDLE (init rejected),
+             * 1 INITED (enable failed), 2 ENABLED. n is NimBLE's bool. */
+            ble_mark("init", heap_largest_internal(), (int)ok, st_after);
+            Serial.printf("[radio] enable-stage before=%d after=%d nim=%d\n",
+                          st_before, st_after, (int)ok);
             Serial.flush();
-            if (!ok) {
+            if (!ok || st_after != (int)ESP_BT_CONTROLLER_STATUS_ENABLED) {
                 ble_controller_idle();
+                if (wifi_used) ble_request_fresh_boot("init");
                 return false;
             }
         } else {
@@ -290,4 +351,18 @@ bool radio_switch(radio_domain_t target)
     }
     s_active = target;
     return true;
+}
+
+void radio_ble_fresh_boot(void)
+{
+    if (s_ble_boot_magic != BLE_BOOT_MAGIC) return;
+    s_ble_boot_magic = 0;
+    s_in_fresh_boot = true;
+    s_launch_spam = true;
+    /* Display is already up via the normal poseidon_dual_begin path.
+     * Start the controller before SD or Wi-Fi touch the heap. */
+    Serial.printf("[radio] BLE-only boot largest=%u\n",
+                  (unsigned)heap_largest_internal());
+    Serial.flush();
+    (void)radio_switch(RADIO_BLE);
 }

@@ -57,29 +57,30 @@ static bool    s_inited = false;
 
 /* ES8311 DAC volume, register 0x32 at I2C 0x18.
  * dB = (reg - 0xBF) * 0.5, with 0xBF = 0 dB and 0x00 = mute.
- * Levels 1..10 alternate +2, +1 counts and stop at 0x8A (−26.5 dB).
- * That cap is the loudest step. Boot default s_volume is 5, so a fresh
- * start writes 0x82 (−30.5 dB).
+ * Levels 1..10 step by a constant +2 counts (+1.0 dB) and stop at
+ * 0x8C (−25.5 dB). That cap is the loudest step. Boot default
+ * s_volume is 5, so a fresh start writes 0x82 (−30.5 dB). The intro
+ * jingle does not use this table; play_boot() scales the speaker alone.
  *
- *   level   dB      reg    step into this level
+ *   level   dB      reg
  *   0       mute    0x00
- *   1      -33.5    0x7C
- *   2      -32.5    0x7E   +2
- *   3      -32.0    0x7F   +1
- *   4      -31.0    0x81   +2
- *   5      -30.5    0x82   +1
- *   6      -29.5    0x84   +2
- *   7      -29.0    0x85   +1
- *   8      -28.0    0x87   +2
- *   9      -27.5    0x88   +1
- *   10     -26.5    0x8A   +2
+ *   1      -34.5    0x7A
+ *   2      -33.5    0x7C
+ *   3      -32.5    0x7E
+ *   4      -31.5    0x80
+ *   5      -30.5    0x82
+ *   6      -29.5    0x84
+ *   7      -28.5    0x86
+ *   8      -27.5    0x88
+ *   9      -26.5    0x8A
+ *   10     -25.5    0x8C
  *
  * Speaker.setVolume stays at full scale (255) for levels 1–10 and 0
  * when muted. Software gain does not stack on this table. */
 static uint8_t es8311_dac_reg(uint8_t level)
 {
     static const uint8_t table[11] = {
-        0x00, 0x7C, 0x7E, 0x7F, 0x81, 0x82, 0x84, 0x85, 0x87, 0x88, 0x8A
+        0x00, 0x7A, 0x7C, 0x7E, 0x80, 0x82, 0x84, 0x86, 0x88, 0x8A, 0x8C
     };
     if (level > 10) level = 10;
     return table[level];
@@ -299,6 +300,11 @@ static void play_cracked(void)
 
 static void play_boot(void)
 {
+    /* Intro only: 70% of full-scale speaker gain (255 * 0.7 = 178).
+     * The ES8311 register stays at the saved level — do not write 0x32
+     * here (this task shares I2C with the TCA8418). apply_volume()
+     * restores speaker gain from s_volume / mute, not a hard-coded 255. */
+    M5Cardputer.Speaker.setVolume(178);
     /* Power-on sequence — sub-bass heartbeat, modem handshake, chord bloom.
      *   1. Two sub-bass pulses  — deep, "waking up"
      *   2. Modem-handshake texture (rapid alternating pitches)
@@ -319,6 +325,7 @@ static void play_boot(void)
     /* final POSEIDON chord */
     const int final_chord[4] = { 2000, 2800, 3400, 4200 };
     chord(final_chord, 4, 220);
+    apply_volume();
 }
 
 static void play_alert(void)
