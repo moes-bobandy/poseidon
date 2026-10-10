@@ -301,15 +301,12 @@ static void play_cracked(void)
 
 static void play_boot(void)
 {
-    /* Intro only, 20% quieter than c8279971.
-     * That tip used Speaker.setVolume(178) at boot DAC 0x82 (-30.5 dB).
-     * 178 * 0.80 = 142.4. This table's boot level 5 is 0x83 (-30.0 dB),
-     * one 0.5 dB step louder: amplitude x 10^(0.5/20) = x1.05925.
-     * 142.4 / 1.05925 = 134.4, so the speaker is set to 134. Net
-     * amplitude is 0.80 times that tip. No ES8311 write here — this
-     * task shares I2C with the TCA8418. apply_volume() restores the
-     * saved speaker gain afterwards (0 if muted, else 255). */
-    M5Cardputer.Speaker.setVolume(134);
+    /* Intro only, another 0.5x from the previous tip's 134.
+     * 134 x 0.5 = 67. 0.5x amplitude is 20*log10(0.5) = -6.0 dB.
+     * Boot DAC stays 0x83 (-30.0 dB, level 5). No ES8311 write here —
+     * this task shares I2C with the TCA8418. apply_volume() restores
+     * the saved speaker gain afterwards (0 if muted, else 255). */
+    M5Cardputer.Speaker.setVolume(67);
     /* Power-on sequence — sub-bass heartbeat, modem handshake, chord bloom.
      *   1. Two sub-bass pulses  — deep, "waking up"
      *   2. Modem-handshake texture (rapid alternating pitches)

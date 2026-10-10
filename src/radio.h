@@ -48,9 +48,12 @@ bool wifi_lean_sta_init(void);
  * Shown on the spam toast when init does not come up. */
 const char *radio_ble_diag(void);
 
-/* Called from setup after the normal display begin (same
- * poseidon_dual_begin path) and before SD. Starts BLE when a spam
- * entry asked for a fresh heap. */
+/* True only when this boot is the one-shot spam restart. Clears the
+ * RTC magic before returning. A normal boot returns false. */
+bool radio_ble_boot_armed(void);
+
+/* NimBLE init for that restart. Call only after radio_ble_boot_armed
+ * returned true, and before M5Cardputer.begin. Does not touch GPIO5. */
 void radio_ble_fresh_boot(void);
 
 /* True once after a fresh-heap reboot so the menu opens BLE spam. */

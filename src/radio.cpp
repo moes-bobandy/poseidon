@@ -61,9 +61,11 @@ static bool wifi_was_used(void)
 static void ble_request_fresh_boot(const char *why)
 {
     /* One auto-reboot per spam entry. The post-reboot attempt sets
-     * s_in_fresh_boot and must stay up and show the toast if it fails. */
+     * s_in_fresh_boot and must stay up and show the toast if it fails.
+     * Count is capped at 1 so a stuck flag cannot reboot forever. */
     if (s_in_fresh_boot) return;
-    s_ble_boot_count++;
+    if (s_ble_boot_count >= 1) return;
+    s_ble_boot_count = 1;
     s_rb_count = s_ble_boot_count;
     ble_diag_publish();
     Serial.printf("[radio] BLE fresh-heap restart (%s) rb=%u\n",
@@ -377,19 +379,34 @@ bool radio_switch(radio_domain_t target)
     return true;
 }
 
-void radio_ble_fresh_boot(void)
+bool radio_ble_boot_armed(void)
 {
-    /* RTC_NOINIT survives power-off as garbage. A boot that is not the
-     * one-shot BLE restart must not increment that leftover. */
+    /* RTC_NOINIT survives reset as garbage. Anything other than the
+     * one-shot flag is a normal boot: zero the counter so the next
+     * increment starts at 1, and do nothing else. */
     if (s_ble_boot_magic != BLE_BOOT_MAGIC) {
         s_ble_boot_count = 0;
-        return;
+        return false;
     }
+    /* Clear before Serial, NimBLE, or anything that can panic. A count
+     * other than 1 means this is not the single allowed auto-reboot. */
     s_ble_boot_magic = 0;
+    if (s_ble_boot_count != 1) {
+        s_ble_boot_count = 0;
+        return false;
+    }
     s_rb_count = s_ble_boot_count;
     s_in_fresh_boot = true;
     s_launch_spam = true;
-    /* Called before M5Cardputer.begin. SD and Wi-Fi have not run. */
+    return true;
+}
+
+void radio_ble_fresh_boot(void)
+{
+    if (!s_in_fresh_boot) return;
+    /* GPIO5 is not driven here. After reset it is an idle input.
+     * poseidon_lcd_quiesce() does nothing until the external panel
+     * has been brought up, which is still later in setup. */
     Serial.printf("[radio] BLE-only boot largest=%u rb=%u\n",
                   (unsigned)heap_largest_internal(), (unsigned)s_rb_count);
     Serial.flush();
