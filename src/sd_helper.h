@@ -14,6 +14,10 @@
  */
 bool sd_mount(void);
 bool sd_is_mounted(void);
+/* Drop the FAT mount and its buffers. Next sd_mount() brings the card
+ * back. Used when the BLE controller needs the contiguous block those
+ * buffers were holding. */
+void sd_drop_for_ble(void);
 
 /* Content wipe: recursive delete of every file/dir. Only does a real
  * f_mkfs if the card is UNmountable to begin with. Re-mounts on

@@ -14,7 +14,7 @@
 #include "version.h"
 #include "serial_test.h"
 #include "heap_budget.h"
-#include "utility/Keyboard/KeyboardReader/TCA8418.h"
+#include "kbd_tca8418.h"
 
 /* Strong override: tell Arduino-ESP32 core that BT is in use. Without
  * this the core calls esp_bt_controller_mem_release(ESP_BT_MODE_BTDM)
@@ -106,11 +106,16 @@ void setup()
     delay(5);
 #endif
 
+    /* Flag check only. NimBLE runs after the internal panel is up.
+     * A normal boot does not enter that path and does not touch GPIO5. */
+    (void)radio_ble_boot_armed();
+
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
+    radio_ble_note_heap("after M5Cardputer.begin");
     /* Safety belt: force the I2C (TCA8418) keyboard reader even if
      * autodetect picked K126, so the driver never grabs G3-G7. */
-    M5Cardputer.Keyboard.begin(std::make_unique<TCA8418KeyboardReader>());
+    M5Cardputer.Keyboard.begin(std::make_unique<PoseidonTcaReader>());
 #if !POSEIDON_DUAL_SCREEN
     /* Release pin 5 — LoRa hat uses it as NSS (needs HIGH to deselect),
      * Hydra hat uses it as CC1101 GDO0 (input). Since we don't know
@@ -125,6 +130,7 @@ void setup()
 #endif
     Serial.begin(115200);
     hb_install_esp_query();
+    radio_ble_flush_notes();
     heap_census();
     delay(100);
     Serial.printf("\n[POSEIDON] %s (%s) boot\n",
@@ -139,13 +145,33 @@ void setup()
                   board == m5::board_t::board_M5Cardputer    ? "Cardputer K126" :
                                                                "UNKNOWN");
 
+    /* BLE-first only. Watchdog first, then the stage marker, then
+     * NimBLE. A normal boot does not arm the timer. */
+    if (radio_ble_fresh_active()) {
+        radio_ble_watchdog_arm();
+        radio_ble_mark_stage(1);
+        radio_ble_log_heap("before NimBLE");
+        radio_ble_fresh_boot();
+        radio_ble_mark_stage(2);
+        radio_ble_log_heap("after NimBLE");
+    }
+
 #if POSEIDON_DUAL_SCREEN
     /* External ILI9341 on SPI3 before SD (same SCK/MOSI). Init order
      * matches Dirt's working Adv dual-screen: color depth + begin +
-     * rotation + boot RGB565, then SD, then lcd_resume_after_bus. */
+     * rotation + boot RGB565, then SD, then lcd_resume_after_bus.
+     * Runs on every exit of the armed path: success, heap refusal,
+     * and a NimBLE failure. A watchdog restart comes back through
+     * here as a normal boot. */
+    if (radio_ble_fresh_active())
+        radio_ble_mark_stage(3);
+    radio_ble_log_heap("before dual_begin");
     if (!poseidon_dual_begin()) {
         Serial.println("[POSEIDON] dual-screen panel absent — UI on internal");
     }
+    if (radio_ble_fresh_active())
+        radio_ble_mark_stage(4);
+    radio_ble_log_heap("after dual_begin");
 #endif
 
     /* Mount SD on boot if a card is present. Non-fatal if absent. */
@@ -189,6 +215,25 @@ void setup()
     serial_test_init();
 
     ui_init();
+    /* Splash waits on a key inside setup(). Disarm before that wait,
+     * or the 8 s timer would reset a boot that already reached the UI.
+     * The call at the bottom of setup() is the same disarm again. */
+    radio_ble_boot_reached_ui();
+    if (radio_ble_death_msg()) {
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+#endif
+        ui_force_clear_body();
+        auto &d = PoseidonDisplay;
+        d.setTextSize(1);
+        d.setTextColor(T_BAD, T_BG);
+        d.setCursor(4, BODY_Y + 2);
+        d.print(radio_ble_death_msg());
+        delay(4500);
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_MENU);
+#endif
+    }
 
     /* Deferred boot: c5_begin() used to fire here so the satellite
      * badge would light up before any feature was opened. But starting
@@ -242,6 +287,7 @@ void setup()
         poseidon_set_surface(POSEIDON_SURFACE_MENU);
 #endif
     }
+    radio_ble_watchdog_disarm();
 }
 
 void loop()
@@ -253,6 +299,16 @@ void loop()
         poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
 #endif
         feat_kerberos();
+    }
+    if (radio_ble_launch_pending()) {
+        extern void feat_ble_spam(void);
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+#endif
+        feat_ble_spam();
+#if POSEIDON_DUAL_SCREEN
+        poseidon_set_surface(POSEIDON_SURFACE_MENU);
+#endif
     }
     menu_run();
     /* menu_run only returns on a quit — rare. Fall through to a
