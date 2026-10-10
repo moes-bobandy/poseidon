@@ -176,7 +176,8 @@ void feat_ble_spam(void)
 {
     /* radio_switch brings NimBLE up once, and refuses when the heap
      * cannot hold the controller (that path used to reset the device). */
-    if (!radio_switch(RADIO_BLE) || !NimBLEDevice::isInitialized()) {
+    if (radio_ble_take_boot_failure()
+        || !radio_switch(RADIO_BLE) || !NimBLEDevice::isInitialized()) {
         ui_force_clear_body();
         auto &d = PoseidonDisplay;
         d.setTextSize(1);
