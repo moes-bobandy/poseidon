@@ -20,7 +20,11 @@ void feat_theme_picker(void)
     while (true) {
         /* Preview only — no NVS writes during browsing. */
         theme_preview((theme_id_t)sel);
-        if (sel != prev_sel) { ui_force_clear_body(); prev_sel = sel; }
+        if (sel != prev_sel) {
+            ui_force_clear_body();
+            poseidon_ext_invalidate();
+            prev_sel = sel;
+        }
         ui_draw_status("theme", "");
 
         d.setTextColor(T_ACCENT, T_BG);
@@ -50,8 +54,11 @@ void feat_theme_picker(void)
         }
         theme_preview((theme_id_t)sel);   /* back to browsed theme after swatch loop */
 
-        /* Picker chrome stays on the menu panel. The content panel
-         * previews the same palette — no second color set. */
+        /* Picker chrome stays on the menu panel. EXT gets a full card
+         * for this theme, including E-INK (white bg, no ambient). The
+         * cache is dropped when the selection changes so a previous
+         * solid fill cannot stay up with no chrome. */
+        poseidon_ext_bus_idle();
         poseidon_content_show_selection("Theme", theme().name,
                                         "menu and content share this palette");
 
@@ -61,14 +68,24 @@ void feat_theme_picker(void)
         if (k == PK_NONE) { delay(20); continue; }
         if (k == PK_ESC) {
             /* Restore original in RAM — NVS still holds original, nothing
-             * to write. */
+             * to write. Repaint EXT so the restored palette is on glass. */
             theme_preview(original);
+            poseidon_ext_bus_idle();
+            poseidon_ext_invalidate();
+            poseidon_content_show_selection("Theme", theme().name,
+                                            "menu and content share this palette");
             return;
         }
         if (k == ';' || k == PK_UP)   sel = (sel - 1 + THEME__COUNT) % THEME__COUNT;
         if (k == '.' || k == PK_DOWN) sel = (sel + 1) % THEME__COUNT;
         if (k == PK_ENTER) {
+            /* Park EXT CS before the NVS flash write. A stall mid-RAMWR
+             * on SPI3 leaves the ILI9341 backlight-only. */
+            poseidon_ext_bus_idle();
             theme_set((theme_id_t)sel);    /* THE ONE NVS write — commit */
+            poseidon_ext_invalidate();
+            poseidon_content_show_selection("Theme", theme().name,
+                                            "menu and content share this palette");
             d.fillScreen(T_BG);
             ui_toast("theme applied", T_GOOD, 600);
             return;

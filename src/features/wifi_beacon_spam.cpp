@@ -179,7 +179,12 @@ void feat_wifi_beacon_spam(void)
 
     s_sent = 0;
     s_running = true;
-    xTaskCreate(spam_task, "spam", 3072, nullptr, 4, nullptr);
+    if (xTaskCreate(spam_task, "spam", 6144, nullptr, 4, nullptr) != pdPASS) {
+        ui_toast("spam task failed", T_BAD, 1200);
+        s_running = false;
+        esp_wifi_set_promiscuous(false);
+        return;
+    }
 
     ui_clear_body();
     ui_draw_footer("`=stop");

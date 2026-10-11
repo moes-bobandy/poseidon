@@ -43,3 +43,64 @@ void wifi_force_clean_sta(void);
  * by this call). Every WiFi-feature should call this BEFORE
  * esp_wifi_set_promiscuous / scan_start / etc. */
 bool wifi_lean_sta_init(void);
+
+/* Last BLE attempt: largest block, NimBLE init rc, controller status.
+ * Shown on the spam toast when init does not come up. */
+const char *radio_ble_diag(void);
+
+/* True only when this boot is the one-shot spam restart. Clears the
+ * RTC magic before returning. A normal boot returns false. The result
+ * is kept in a static for the call after M5Cardputer.begin. */
+bool radio_ble_boot_armed(void);
+
+/* True after radio_ble_boot_armed() accepted this boot. */
+bool radio_ble_fresh_active(void);
+
+/* Record free/largest internal heap. Safe before Serial.begin. */
+void radio_ble_note_heap(const char *tag);
+
+/* Print notes taken before Serial.begin, then drop them. */
+void radio_ble_flush_notes(void);
+
+/* Print free heap, largest block, and the stage marker. Serial is up. */
+void radio_ble_log_heap(const char *tag);
+
+/* 8 s one-shot. Call only on the BLE-first path, before dual_begin.
+ * Fires from the esp_timer task, not from setup(). */
+void radio_ble_watchdog_arm(void);
+void radio_ble_watchdog_disarm(void);
+
+/* RTC stage, BLE-first boot only.
+ * 1 before dual_begin, 2 after it, 3 before NimBLE, 4 after NimBLE. */
+void radio_ble_mark_stage(uint32_t stage);
+
+/* NimBLE for the restart. Call only after poseidon_dual_begin has
+ * confirmed the external panel. Does not reboot on this boot. */
+void radio_ble_fresh_boot(void);
+
+/* Boot-report fields. Short tokens: ok, fail, short, skip, same, dead. */
+void radio_ble_set_ext(const char *s);
+void radio_ble_set_post(const char *s);
+
+/* Panel was up, then the post-NimBLE check failed. Next boot is normal
+ * and toasts "EXT died after NimBLE". */
+void radio_ble_note_ext_died(void);
+
+/* External init failed. This boot toasts on the internal panel.
+ * Magic, counter, and stage are cleared. NimBLE is not started. */
+void radio_ble_note_ext_failed(void);
+
+/* Clear the stage marker and disarm the watchdog. Call once the
+ * panels and ui_init are up, before the splash wait. */
+void radio_ble_boot_reached_ui(void);
+
+/* "BLE boot died at stage N" when the previous boot's marker was
+ * still set. Null on a clean boot. */
+const char *radio_ble_death_msg(void);
+
+/* True once after a fresh-heap reboot so the menu opens BLE spam. */
+bool radio_ble_launch_pending(void);
+
+/* The one-shot boot already ran NimBLE and it did not come up.
+ * One-shot: the next spam entry tries again. */
+bool radio_ble_take_boot_failure(void);

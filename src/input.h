@@ -23,6 +23,8 @@ enum : uint16_t {
     PK_LEFT   = 0x102,
     PK_RIGHT  = 0x103,
     PK_FN     = 0x104,
+    /* Consumed by the TCA8418 Fn+arrow volume keys. Menus ignore it. */
+    PK_VOL    = 0x110,
 };
 
 /* One event per key press (not repeat). Returns PK_NONE if no event. */

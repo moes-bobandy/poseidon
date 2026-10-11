@@ -7,7 +7,8 @@
  *   MATRIX    ->  souped-up phosphor rain at full T_FG brightness;
  *                 ui_matrix_rain handles the bright leading char +
  *                 fading green trail internally.
- *   E-INK     ->  no-op, paper aesthetic preserved.
+ *   E-INK     ->  paper grain plus slow black ink beads on white.
+ *   BLOOD     ->  slow crimson drips on black.
  *
  * State invariants:
  *   - All per-frame state derives from millis() and esp_random(); no
@@ -137,14 +138,85 @@ static void amb_matrix(int x, int y, int w, int h)
     ui_matrix_rain(x, y, w, h, T_FG);
 }
 
+/* E-INK: dark ink on paper white. Grain specks breathe in place so the
+ * sheet is never a blank 0xFFFF fill. Six beads drift down the page. */
+static void amb_eink(int x, int y, int w, int h)
+{
+    auto &d = PoseidonDisplay;
+    uint32_t now = millis();
+    const int step = 16;
+
+    for (int gy = 0; gy < h; gy += step) {
+        for (int gx = 0; gx < w; gx += step) {
+            uint32_t cell = (uint32_t)(gx * 13 + gy * 29 + 11);
+            if ((cell % 4) != 0) continue;
+            uint32_t period = 4200u + (cell % 2800u);
+            uint32_t phase = (now + cell) % period;
+            if (phase > (period * 2u) / 5u) continue;
+            uint16_t ink = (cell & 1u) ? T_FG : T_DIM;
+            d.drawPixel(x + gx, y + gy, ink);
+            if ((cell % 8u) == 0 && gx + 1 < w)
+                d.drawPixel(x + gx + 1, y + gy, T_ACCENT2);
+        }
+    }
+
+    for (int i = 0; i < 6; ++i) {
+        uint32_t period = 8400u + (uint32_t)i * 900u;
+        uint32_t phase = (now + (uint32_t)i * 1500u) % period;
+        int my = (int)(((uint64_t)phase * (uint32_t)(h + 10)) / period) - 6;
+        int mx = (w * (7 + i * 15)) / 100;
+        if (mx < 0) mx = 0;
+        if (mx >= w) mx = w - 1;
+        for (int t = 5; t >= 1; --t) {
+            int ty = my - t * 2;
+            if (ty < 0 || ty >= h) continue;
+            d.drawPixel(x + mx, y + ty, (t > 2) ? T_DIM : T_ACCENT2);
+        }
+        if (my >= 0 && my < h)
+            d.fillRect(x + mx, y + my, 2, 3, T_FG);
+    }
+}
+
+/* BLOOD: slow drips. A bright bead with a crimson tail, spaced across
+ * the panel so the black field keeps moving. */
+static void amb_blood(int x, int y, int w, int h)
+{
+    auto &d = PoseidonDisplay;
+    uint32_t now = millis();
+
+    for (int i = 0; i < 7; ++i) {
+        uint32_t period = 5200u + (uint32_t)i * 640u;
+        uint32_t phase = (now + (uint32_t)i * 1100u) % period;
+        int my = (int)(((uint64_t)phase * (uint32_t)(h + 18)) / period) - 10;
+        int mx = (w * (5 + i * 13)) / 100;
+        if (mx < 1) mx = 1;
+        if (mx >= w - 1) mx = w - 2;
+        for (int t = 7; t >= 1; --t) {
+            int ty = my - t * 3;
+            if (ty < 0 || ty >= h) continue;
+            uint16_t c = (t > 4) ? T_ACCENT2 : T_ACCENT;
+            d.drawPixel(x + mx, y + ty, c);
+            if (t <= 2)
+                d.drawPixel(x + mx + 1, y + ty, T_ACCENT2);
+        }
+        if (my >= 0 && my < h) {
+            d.fillRect(x + mx - 1, y + my, 3, 4, T_BAD);
+            if (my + 4 < h)
+                d.drawPixel(x + mx, y + my + 4, T_ACCENT);
+        }
+    }
+}
+
 bool ui_ambient_paints(void)
 {
     if (!ui_ambient_enabled()) return false;
     switch (theme_current_id()) {
     case THEME_POSEIDON:
     case THEME_MATRIX:
+    case THEME_EINK:
     case THEME_SYNTHWAVE:
     case THEME_PHANTOM:
+    case THEME_BLOOD:
         return true;
     default:
         return false;
@@ -158,10 +230,10 @@ void ui_ambient_tick(int x, int y, int w, int h)
     switch (theme_current_id()) {
     case THEME_POSEIDON:  amb_poseidon(x, y, w, h); break;
     case THEME_MATRIX:    amb_matrix  (x, y, w, h); break;
-    case THEME_EINK:      /* paper aesthetic — no ambient */    break;
-    case THEME_SYNTHWAVE: amb_poseidon(x, y, w, h); break;  /* cyberpunk lines repainted in vaporwave palette */
-    case THEME_PHANTOM:   amb_poseidon(x, y, w, h); break;  /* same motion, violet repaint */
-    case THEME_BLOOD:     /* fsociety tactical — no ambient, minimal */ break;
+    case THEME_EINK:      amb_eink    (x, y, w, h); break;
+    case THEME_SYNTHWAVE: amb_poseidon(x, y, w, h); break;
+    case THEME_PHANTOM:   amb_poseidon(x, y, w, h); break;
+    case THEME_BLOOD:     amb_blood   (x, y, w, h); break;
     default:              break;
     }
 }

@@ -1279,6 +1279,30 @@ void ui_show_current_help(void)
 /* Show detailed info for the selected item until any key pressed. */
 static void show_info(const menu_node_t *item)
 {
+#if POSEIDON_DUAL_SCREEN
+    if (poseidon_dual_ok()) {
+        /* Blood-sized card once. Later frames only repaint the gaps
+         * outside that chrome, clipped, so rain cannot eat the type
+         * and the panel is not fillScreen'd every tick. */
+        poseidon_surface_t prev = poseidon_surface();
+        poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+        char side[8];
+        snprintf(side, sizeof(side), "[%c]", (char)toupper(item->hotkey));
+        poseidon_ext_recover_if_needed();
+        const char *body = item->info ? item->info : "(no detailed info)";
+        poseidon_ext_paint_card(side, item->label, item->hint, body);
+        while (true) {
+            poseidon_ext_ambient_gaps();
+            uint16_t k = input_poll();
+            if (k != PK_NONE && k != PK_VOL) {
+                poseidon_ext_bus_idle();
+                poseidon_set_surface(prev);
+                return;
+            }
+            delay(33);
+        }
+    }
+#endif
     auto &d = PoseidonDisplay;
     ui_force_clear_body();
     d.setTextColor(T_ACCENT2, T_BG);
@@ -1321,7 +1345,7 @@ static void show_info(const menu_node_t *item)
     ui_draw_footer("any key = back");
     while (true) {
         uint16_t k = input_poll();
-        if (k != PK_NONE) return;
+        if (k != PK_NONE && k != PK_VOL) return;
         delay(40);
     }
 }

@@ -39,6 +39,11 @@
  * screensaver is disabled. */
 bool screensaver_check_idle(void);
 
+/* Free the 320×240 compose sprite (~154 KB) if it is still allocated.
+ * Returns true when a block was returned. Not on the heap-reclaim list
+ * unless the saver has run; BLE calls this before the 48 KB gate. */
+bool screensaver_free_sprite(void);
+
 bool     screensaver_enabled(void);
 void     screensaver_enabled_set(bool on);
 uint32_t screensaver_timeout_ms(void);

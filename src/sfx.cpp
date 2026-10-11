@@ -55,20 +55,43 @@ static uint8_t s_volume = 5;     /* 0..10 user-facing */
 static bool    s_mute = false;
 static bool    s_inited = false;
 
-static inline uint8_t user_to_m5(uint8_t u)
+/* ES8311 DAC volume, register 0x32 at I2C 0x18.
+ * dB = (reg - 0xBF) * 0.5. 0xBF = 0 dB. 0x00 is mute at -95.5 dB. Level 10 is
+ * 0x8F (-24.0 dB), three 0.5 dB steps above the previous cap 0x8C
+ * (-25.5 dB): amplitude x 10^(1.5/20) = x1.189, about +19 percent.
+ * The nine gaps from 0x7A to 0x8F are 21 counts, spread as +2/+3.
+ * Boot default s_volume is 5, so a fresh start writes 0x83 (-30.0 dB).
+ * The intro does not use this table; play_boot() scales the speaker.
+ *
+ *   level   dB      reg
+ *   0       mute    0x00
+ *   1      -34.5    0x7A
+ *   2      -33.5    0x7C
+ *   3      -32.0    0x7F
+ *   4      -31.0    0x81
+ *   5      -30.0    0x83
+ *   6      -28.5    0x86
+ *   7      -27.5    0x88
+ *   8      -26.5    0x8A
+ *   9      -25.0    0x8D
+ *   10     -24.0    0x8F
+ *
+ * Speaker.setVolume stays at full scale (255) for levels 1–10 and 0
+ * when muted. Software gain does not stack on this table. */
+static uint8_t es8311_dac_reg(uint8_t level)
 {
-    /* M5 speaker volume is 0..255. Map 0..10 exponentially so the low
-     * end doesn't just jump from silent to loud. */
-    if (u == 0) return 0;
-    static const uint8_t curve[11] = { 0, 8, 18, 32, 48, 72, 100, 140, 180, 220, 255 };
-    if (u > 10) u = 10;
-    return curve[u];
+    static const uint8_t table[11] = {
+        0x00, 0x7A, 0x7C, 0x7F, 0x81, 0x83, 0x86, 0x88, 0x8A, 0x8D, 0x8F
+    };
+    if (level > 10) level = 10;
+    return table[level];
 }
 
 static void apply_volume(void)
 {
-    uint8_t v = s_mute ? 0 : user_to_m5(s_volume);
-    M5Cardputer.Speaker.setVolume(v);
+    bool silent = s_mute || s_volume == 0;
+    M5Cardputer.Speaker.setVolume(silent ? 0 : 255);
+    M5.In_I2C.writeRegister8(0x18, 0x32, es8311_dac_reg(silent ? 0 : s_volume), 100000);
 }
 
 void sfx_init(void)
@@ -278,6 +301,12 @@ static void play_cracked(void)
 
 static void play_boot(void)
 {
+    /* Intro only, another 0.5x from the previous tip's 134.
+     * 134 x 0.5 = 67. 0.5x amplitude is 20*log10(0.5) = -6.0 dB.
+     * Boot DAC stays 0x83 (-30.0 dB, level 5). No ES8311 write here —
+     * this task shares I2C with the TCA8418. apply_volume() restores
+     * the saved speaker gain afterwards (0 if muted, else 255). */
+    M5Cardputer.Speaker.setVolume(67);
     /* Power-on sequence — sub-bass heartbeat, modem handshake, chord bloom.
      *   1. Two sub-bass pulses  — deep, "waking up"
      *   2. Modem-handshake texture (rapid alternating pitches)
@@ -298,6 +327,7 @@ static void play_boot(void)
     /* final POSEIDON chord */
     const int final_chord[4] = { 2000, 2800, 3400, 4200 };
     chord(final_chord, 4, 220);
+    apply_volume();
 }
 
 static void play_alert(void)

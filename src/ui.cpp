@@ -983,9 +983,15 @@ static char    mx_glyph[MATRIX_COLS];
 static uint32_t mx_last_tick = 0;
 static bool     mx_initialized = false;
 
+static lgfx::LovyanGFX *s_rain_dst = nullptr;
+
+void ui_matrix_rain_target(lgfx::LovyanGFX *dst) { s_rain_dst = dst; }
+
 void ui_matrix_rain(int x, int y, int w, int h, uint16_t color)
 {
-    auto &d = PoseidonDisplay;
+    lgfx::LovyanGFX &d = s_rain_dst
+        ? *s_rain_dst
+        : static_cast<lgfx::LovyanGFX &>(PoseidonDisplay);
     /* Font cell: 6×8 default. Column spacing ~6px, row spacing ~8. */
     int col_w = 6;
     int row_h = 8;
