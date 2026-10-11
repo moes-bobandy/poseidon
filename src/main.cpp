@@ -145,33 +145,46 @@ void setup()
                   board == m5::board_t::board_M5Cardputer    ? "Cardputer K126" :
                                                                "UNKNOWN");
 
-    /* BLE-first only. Watchdog first, then the stage marker, then
-     * NimBLE. A normal boot does not arm the timer. */
+#if POSEIDON_DUAL_SCREEN
+    /* External panel before NimBLE, on the same heap a normal boot
+     * uses. The armed path arms the timer first, then writes stage 1. */
     if (radio_ble_fresh_active()) {
         radio_ble_watchdog_arm();
         radio_ble_mark_stage(1);
+    }
+    radio_ble_log_heap("before dual_begin");
+    bool ext_up = poseidon_dual_begin();
+    radio_ble_note_heap("after dual_begin");
+    radio_ble_set_ext(ext_up ? "ok" : "fail");
+    if (radio_ble_fresh_active() && ext_up)
+        radio_ble_mark_stage(2);
+    radio_ble_log_heap("after dual_begin");
+    if (!ext_up) {
+        /* Any boot: panel failed after one retry. Toast on INT.
+         * Do not start NimBLE. RTC magic, counter, and stage are cleared. */
+        radio_ble_set_post("skip");
+        radio_ble_note_ext_failed();
+    } else if (radio_ble_fresh_active()) {
+        radio_ble_mark_stage(3);
         radio_ble_log_heap("before NimBLE");
         radio_ble_fresh_boot();
-        radio_ble_mark_stage(2);
+        radio_ble_mark_stage(4);
+        radio_ble_log_heap("after NimBLE");
+        if (poseidon_ext_alive()) {
+            radio_ble_set_post("same");
+        } else {
+            radio_ble_note_ext_died();
+        }
+    }
+#else
+    if (radio_ble_fresh_active()) {
+        radio_ble_watchdog_arm();
+        radio_ble_mark_stage(3);
+        radio_ble_log_heap("before NimBLE");
+        radio_ble_fresh_boot();
+        radio_ble_mark_stage(4);
         radio_ble_log_heap("after NimBLE");
     }
-
-#if POSEIDON_DUAL_SCREEN
-    /* External ILI9341 on SPI3 before SD (same SCK/MOSI). Init order
-     * matches Dirt's working Adv dual-screen: color depth + begin +
-     * rotation + boot RGB565, then SD, then lcd_resume_after_bus.
-     * Runs on every exit of the armed path: success, heap refusal,
-     * and a NimBLE failure. A watchdog restart comes back through
-     * here as a normal boot. */
-    if (radio_ble_fresh_active())
-        radio_ble_mark_stage(3);
-    radio_ble_log_heap("before dual_begin");
-    if (!poseidon_dual_begin()) {
-        Serial.println("[POSEIDON] dual-screen panel absent — UI on internal");
-    }
-    if (radio_ble_fresh_active())
-        radio_ble_mark_stage(4);
-    radio_ble_log_heap("after dual_begin");
 #endif
 
     /* Mount SD on boot if a card is present. Non-fatal if absent. */
@@ -219,20 +232,18 @@ void setup()
      * or the 8 s timer would reset a boot that already reached the UI.
      * The call at the bottom of setup() is the same disarm again. */
     radio_ble_boot_reached_ui();
-    if (radio_ble_death_msg()) {
+    if (radio_ble_fresh_active() || radio_ble_death_msg()) {
+        /* INT menu surface. EXT may be white; the photo has to be here. */
 #if POSEIDON_DUAL_SCREEN
-        poseidon_set_surface(POSEIDON_SURFACE_CONTENT);
+        poseidon_set_surface(POSEIDON_SURFACE_MENU);
 #endif
         ui_force_clear_body();
         auto &d = PoseidonDisplay;
         d.setTextSize(1);
-        d.setTextColor(T_BAD, T_BG);
-        d.setCursor(4, BODY_Y + 2);
-        d.print(radio_ble_death_msg());
-        delay(4500);
-#if POSEIDON_DUAL_SCREEN
-        poseidon_set_surface(POSEIDON_SURFACE_MENU);
-#endif
+        d.setTextColor(T_FG, T_BG);
+        d.setCursor(2, BODY_Y + 2);
+        d.print(radio_ble_diag());
+        delay(6000);
     }
 
     /* Deferred boot: c5_begin() used to fire here so the satellite

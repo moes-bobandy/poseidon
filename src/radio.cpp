@@ -27,6 +27,9 @@ static bool s_wifi_used = false;
 RTC_NOINIT_ATTR static uint32_t s_ble_boot_magic;
 RTC_NOINIT_ATTR static uint32_t s_ble_boot_count;
 RTC_NOINIT_ATTR static uint32_t s_ble_boot_stage;
+/* Set when the panel was up and the post-NimBLE check failed. */
+RTC_NOINIT_ATTR static uint32_t s_ble_ext_died;
+static const uint32_t BLE_EXT_DIED = 0xE27D1E01u;
 static const uint32_t BLE_BOOT_MAGIC = 0xB1E0B007u;
 /* High bytes are the signature. The low byte is the stage, 1..4.
  * A power-cycle garbage word does not match. */
@@ -36,13 +39,15 @@ static bool s_launch_spam = false;
 static bool s_fresh_tried = false;
 static char s_ble_diag[192] = "ble idle";
 static size_t s_L_ss = 0, s_L_rc = 0, s_L_sd = 0, s_L_wf = 0, s_L_init = 0;
-static size_t s_L_after_begin = 0, s_L_before_nim = 0;
+static size_t s_L_after_begin = 0, s_L_after_dual = 0, s_L_before_nim = 0;
 static int s_nim_rc = -1, s_bt_st = 0;
 static uint32_t s_rb_count = 0;
 static uint32_t s_stage_num = 0;
-/* RTC_NOINIT is declared with the magic above. */
 static int s_death_stage = 0;
-static char s_death_msg[40];
+static char s_death_msg[48];
+static char s_ext_res[8] = "skip";
+static char s_nim_res[8] = "skip";
+static char s_post_res[8] = "skip";
 static esp_timer_handle_t s_ble_wd = nullptr;
 static bool s_ble_wd_armed = false;
 
@@ -58,17 +63,22 @@ static int s_note_n = 0;
 static void ble_diag_publish(void)
 {
     snprintf(s_ble_diag, sizeof(s_ble_diag),
-             "ss=%u rc=%u\nsd=%u wf=%u\nL=%u n=%d st=%d\nrb=%u sg=%u\nLb=%u La=%u",
-             (unsigned)s_L_ss, (unsigned)s_L_rc,
-             (unsigned)s_L_sd, (unsigned)s_L_wf,
-             (unsigned)s_L_init, s_nim_rc, s_bt_st, (unsigned)s_rb_count,
-             (unsigned)s_stage_num,
-             (unsigned)s_L_before_nim, (unsigned)s_L_after_begin);
+             "%s%sLa=%u Lc=%u\nLb=%u sg=%u\nEXT=%s\nNIM=%s\npost=%s\nn=%d st=%d rb=%u",
+             s_death_msg[0] ? s_death_msg : "",
+             s_death_msg[0] ? "\n" : "",
+             (unsigned)s_L_after_begin, (unsigned)s_L_after_dual,
+             (unsigned)s_L_before_nim, (unsigned)s_stage_num,
+             s_ext_res, s_nim_res, s_post_res,
+             s_nim_rc, s_bt_st, (unsigned)s_rb_count);
     Serial.printf("[radio] %s\n", s_ble_diag);
     Serial.flush();
 }
 
-const char *radio_ble_diag(void) { return s_ble_diag; }
+const char *radio_ble_diag(void)
+{
+    ble_diag_publish();
+    return s_ble_diag;
+}
 
 bool radio_ble_launch_pending(void)
 {
@@ -342,6 +352,7 @@ bool radio_switch(radio_domain_t target)
             /* EXT CS idle HIGH before any SPI release or the controller
              * allocation. dma_channel stays 0. */
             poseidon_lcd_quiesce();
+            poseidon_ext_mark();
             s_L_sd = s_L_rc;
             if (s_L_sd < 48 * 1024) {
                 sd_drop_for_ble();
@@ -370,6 +381,7 @@ bool radio_switch(radio_domain_t target)
              * used. The one-shot boot itself must not reboot again. */
             if (s_L_init < 48 * 1024) {
                 poseidon_lcd_resume_after_bus();
+                snprintf(s_nim_res, sizeof(s_nim_res), "short");
                 ble_request_fresh_boot("heap");
                 ble_diag_publish();
                 if (s_in_fresh_boot) {
@@ -394,11 +406,13 @@ bool radio_switch(radio_domain_t target)
                           st_before, st_after, (int)ok);
             Serial.flush();
             if (!ok || st_after != (int)ESP_BT_CONTROLLER_STATUS_ENABLED) {
+                snprintf(s_nim_res, sizeof(s_nim_res), "fail");
                 ble_controller_idle();
                 ble_request_fresh_boot("init");
                 ble_diag_publish();
                 return false;
             }
+            snprintf(s_nim_res, sizeof(s_nim_res), "ok");
         } else {
             Serial.println("[radio] NimBLE already initialized"); Serial.flush();
         }
@@ -449,6 +463,8 @@ void radio_ble_note_heap(const char *tag)
     n.stage = s_stage_num;
     if (tag && strcmp(tag, "after M5Cardputer.begin") == 0)
         s_L_after_begin = n.largest;
+    if (tag && strcmp(tag, "after dual_begin") == 0)
+        s_L_after_dual = n.largest;
 }
 
 void radio_ble_flush_notes(void)
@@ -522,10 +538,55 @@ const char *radio_ble_death_msg(void)
     return s_death_stage ? s_death_msg : nullptr;
 }
 
+void radio_ble_set_ext(const char *s)
+{
+    snprintf(s_ext_res, sizeof(s_ext_res), "%s", s ? s : "skip");
+}
+
+void radio_ble_set_post(const char *s)
+{
+    snprintf(s_post_res, sizeof(s_post_res), "%s", s ? s : "skip");
+}
+
+void radio_ble_note_ext_died(void)
+{
+    s_ble_ext_died = BLE_EXT_DIED;
+    snprintf(s_death_msg, sizeof(s_death_msg), "EXT died after NimBLE");
+    s_death_stage = 1;
+    snprintf(s_post_res, sizeof(s_post_res), "dead");
+    /* Magic was cleared at the flag check. Drop the counter and the
+     * stage word too. The ext-died word is what the next boot toasts
+     * and then clears. */
+    s_ble_boot_magic = 0;
+    s_ble_boot_count = 0;
+    s_ble_boot_stage = 0;
+    s_launch_spam = false;
+}
+
+void radio_ble_note_ext_failed(void)
+{
+    snprintf(s_death_msg, sizeof(s_death_msg), "EXT init failed");
+    s_death_stage = 1;
+    snprintf(s_nim_res, sizeof(s_nim_res), "skip");
+    s_ble_boot_magic = 0;
+    s_ble_boot_count = 0;
+    s_ble_boot_stage = 0;
+    s_ble_ext_died = 0;
+    s_launch_spam = false;
+}
+
 bool radio_ble_boot_armed(void)
 {
     /* First sample. Serial is not up yet; flushed after begin. */
     radio_ble_note_heap("before armed check");
+
+    if (s_ble_ext_died == BLE_EXT_DIED) {
+        s_death_stage = 1;
+        snprintf(s_death_msg, sizeof(s_death_msg), "EXT died after NimBLE");
+        s_ble_ext_died = 0;
+        ble_clear_rtc();
+        return false;
+    }
 
     uint32_t died = 0;
     if (ble_stage_number(s_ble_boot_stage, &died)) {

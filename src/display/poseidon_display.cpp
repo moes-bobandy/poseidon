@@ -9,6 +9,8 @@
 #include "theme.h"
 #include "ui_ambient.h"
 #include <string.h>
+#include "soc/io_mux_reg.h"
+#include "soc/gpio_reg.h"
 
 /* Defined in ui.cpp. Invalidating here keeps the status-bar cache from
  * skipping the first paint after a surface switch. */
@@ -379,40 +381,151 @@ void poseidon_content_ambient_tick(void)
     poseidon_ext_ambient_gaps();
 }
 
-bool poseidon_dual_begin(void)
+/* RST, CS, DC, MOSI, SCK. Snapshot after a good init. */
+static const int s_ext_pins[5] = {
+    POSEIDON_EXT_LCD_RST, POSEIDON_EXT_LCD_CS, POSEIDON_EXT_LCD_DC,
+    POSEIDON_EXT_PIN_MOSI, POSEIDON_EXT_PIN_SCK
+};
+static const uint32_t s_ext_mux_reg[5] = {
+    IO_MUX_GPIO3_REG, IO_MUX_GPIO5_REG, IO_MUX_GPIO6_REG,
+    IO_MUX_GPIO14_REG, IO_MUX_GPIO40_REG
+};
+static uint32_t s_ext_sig[5];
+static uint32_t s_ext_mux[5];
+static bool s_ext_snap = false;
+
+static uint32_t ext_out_sel(int pin)
 {
-    if (s_ext_ok && !s_ext_force_reinit) return true;
-    s_ext_force_reinit = false;
+    return REG_READ(GPIO_FUNC0_OUT_SEL_CFG_REG + (pin * 4)) & GPIO_FUNC0_OUT_SEL;
+}
 
-    /* Power rail settle after M5Cardputer.begin(). */
-    delay(100);
+static uint32_t ext_mcu_sel(uint32_t reg)
+{
+    return (REG_READ(reg) >> MCU_SEL_S) & MCU_SEL_V;
+}
 
-    /* Boot-only color depth BEFORE begin — never mid-run. */
+static void ext_pin_snap(void)
+{
+    for (int i = 0; i < 5; i++) {
+        s_ext_sig[i] = ext_out_sel(s_ext_pins[i]);
+        s_ext_mux[i] = ext_mcu_sel(s_ext_mux_reg[i]);
+    }
+    s_ext_snap = true;
+    Serial.printf("[dual] pin sig %u %u %u %u %u mux %u %u %u %u %u\n",
+                  (unsigned)s_ext_sig[0], (unsigned)s_ext_sig[1],
+                  (unsigned)s_ext_sig[2], (unsigned)s_ext_sig[3],
+                  (unsigned)s_ext_sig[4],
+                  (unsigned)s_ext_mux[0], (unsigned)s_ext_mux[1],
+                  (unsigned)s_ext_mux[2], (unsigned)s_ext_mux[3],
+                  (unsigned)s_ext_mux[4]);
+    Serial.flush();
+}
+
+static bool ext_pin_match(void)
+{
+    if (!s_ext_snap) return false;
+    for (int i = 0; i < 5; i++) {
+        if (ext_out_sel(s_ext_pins[i]) != s_ext_sig[i]) return false;
+        if (ext_mcu_sel(s_ext_mux_reg[i]) != s_ext_mux[i]) return false;
+    }
+    return true;
+}
+
+static void ext_park_cs(void)
+{
+    s_ext_ok = false;
+    pinMode(POSEIDON_EXT_LCD_CS, OUTPUT);
+    digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
+}
+
+/* One init attempt. setColorDepth is void. begin() is the only init
+ * return. Geometry must be 320x240 or this attempt fails closed.
+ * The bus is 3-wire with MISO unwired, so the ILI9341 ID cannot be
+ * read. The known-good step is fillScreen(0x0000). */
+static bool dual_hw_begin(bool settle)
+{
+    if (settle) delay(100);
     g_ext_display.setColorDepth(16);
+    Serial.println("[dual] setColorDepth(16) has no status return");
+    Serial.flush();
     if (!g_ext_display.begin()) {
-        Serial.println("[dual] ILI9341 begin() failed — content falls back to ST7789");
-        s_ext_ok = false;
-        pinMode(POSEIDON_EXT_LCD_CS, OUTPUT);
-        digitalWrite(POSEIDON_EXT_LCD_CS, HIGH);
+        Serial.println("[dual] begin() returned false");
+        Serial.flush();
+        ext_park_cs();
         return false;
     }
     delay(50);
     /* Landscape 320×240 (panel memory is 240×320, offset_rotation 4). */
     g_ext_display.setRotation(3);
-    /* Leave _swapBytes false, matching the internal ST7789. Argus and
-     * the other RGB565 sprites are already byte-swapped for that path.
-     * setSwapBytes(true) here double-swaps them and the face turns to
-     * color noise. */
+    int w = g_ext_display.width();
+    int h = g_ext_display.height();
+    if (w != 320 || h != 240) {
+        Serial.printf("[dual] geometry %dx%d, want 320x240\n", w, h);
+        Serial.flush();
+        ext_park_cs();
+        return false;
+    }
+    /* Leave _swapBytes false, matching the internal ST7789. */
     g_ext_display.setTextDatum(top_left);
     g_ext_display.setTextWrap(false, false);
     g_ext_display.setTextSize(1);
     g_ext_display.fillScreen(0x0000);
-
+    ext_pin_snap();
     s_ext_ok = true;
-    Serial.printf("[dual] ILI9341 OK %dx%d — content on EXT, menu on INT "
-                  "(SPI3 CS5 DC6 RST3)\n",
-                  (int)g_ext_display.width(), (int)g_ext_display.height());
+    Serial.printf("[dual] OK %dx%d fill 0x0000; ID unread "
+                  "(pin_miso=-1 readable=0 spi_3wire)\n", w, h);
+    Serial.flush();
     return true;
+}
+
+void poseidon_ext_mark(void)
+{
+    if (!s_ext_ok) return;
+    ext_pin_snap();
+}
+
+bool poseidon_ext_alive(void)
+{
+    if (!s_ext_ok) {
+        Serial.println("[dual] alive: not up");
+        Serial.flush();
+        return false;
+    }
+    int w = g_ext_display.width();
+    int h = g_ext_display.height();
+    if (w != 320 || h != 240 || !ext_pin_match()) {
+        Serial.printf("[dual] alive: dead geom=%dx%d pins=%d\n",
+                      w, h, (int)ext_pin_match());
+        Serial.flush();
+        return false;
+    }
+    Serial.println("[dual] alive: mux matches; glass not readable");
+    Serial.flush();
+    return true;
+}
+
+bool poseidon_dual_begin(void)
+{
+    if (s_ext_ok && !s_ext_force_reinit) return true;
+    s_ext_force_reinit = false;
+
+    if (dual_hw_begin(true)) return true;
+
+    /* One retry: hold RST low, release it, then the same init. */
+    Serial.println("[dual] retry RST pulse");
+    Serial.flush();
+    pinMode(POSEIDON_EXT_LCD_RST, OUTPUT);
+    digitalWrite(POSEIDON_EXT_LCD_RST, LOW);
+    delay(20);
+    digitalWrite(POSEIDON_EXT_LCD_RST, HIGH);
+    delay(120);
+    s_ext_ok = false;
+    if (dual_hw_begin(false)) return true;
+
+    Serial.println("[dual] init failed after retry — UI stays on INT");
+    Serial.flush();
+    ext_park_cs();
+    return false;
 }
 
 #endif /* POSEIDON_DUAL_SCREEN */

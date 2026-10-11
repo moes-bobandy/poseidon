@@ -50,6 +50,13 @@ lgfx::LGFX_Device &poseidon_disp(void);
 
 bool poseidon_dual_begin(void);
 bool poseidon_dual_ok(void);
+/* True when the external panel still matches the post-init pin mux
+ * and 320x240 geometry. There is no MISO, so this cannot read the
+ * ILI9341 ID. */
+bool poseidon_ext_alive(void);
+/* Remember the EXT pin mux. Call after the panel is idle and before
+ * NimBLE, so a later alive check can see if the controller remuxed it. */
+void poseidon_ext_mark(void);
 void poseidon_lcd_quiesce(void);
 void poseidon_lcd_resume_after_bus(void);
 
@@ -108,6 +115,8 @@ inline M5GFX &poseidon_content(void) { return M5Cardputer.Display; }
 inline M5GFX &poseidon_disp(void) { return M5Cardputer.Display; }
 inline bool poseidon_dual_begin(void) { return false; }
 inline bool poseidon_dual_ok(void) { return false; }
+inline bool poseidon_ext_alive(void) { return false; }
+inline void poseidon_ext_mark(void) {}
 inline void poseidon_lcd_quiesce(void) {}
 inline void poseidon_lcd_resume_after_bus(void) {}
 inline void poseidon_set_surface(poseidon_surface_t) {}

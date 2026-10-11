@@ -65,20 +65,30 @@ void radio_ble_flush_notes(void);
 /* Print free heap, largest block, and the stage marker. Serial is up. */
 void radio_ble_log_heap(const char *tag);
 
-/* 8 s one-shot. Call only on the BLE-first path, before NimBLE.
+/* 8 s one-shot. Call only on the BLE-first path, before dual_begin.
  * Fires from the esp_timer task, not from setup(). */
 void radio_ble_watchdog_arm(void);
 void radio_ble_watchdog_disarm(void);
 
-/* RTC stage, BLE-first boot only. 1 before NimBLE, 2 after NimBLE,
- * 3 before dual_begin, 4 after dual_begin. */
+/* RTC stage, BLE-first boot only.
+ * 1 before dual_begin, 2 after it, 3 before NimBLE, 4 after NimBLE. */
 void radio_ble_mark_stage(uint32_t stage);
 
-/* NimBLE for the restart. Call after M5Cardputer.begin, keyboard
- * begin, and the internal setRotation, and before poseidon_dual_begin.
- * Does not touch GPIO5. Does not reboot when this boot is already
- * the one-shot restart. */
+/* NimBLE for the restart. Call only after poseidon_dual_begin has
+ * confirmed the external panel. Does not reboot on this boot. */
 void radio_ble_fresh_boot(void);
+
+/* Boot-report fields. Short tokens: ok, fail, short, skip, same, dead. */
+void radio_ble_set_ext(const char *s);
+void radio_ble_set_post(const char *s);
+
+/* Panel was up, then the post-NimBLE check failed. Next boot is normal
+ * and toasts "EXT died after NimBLE". */
+void radio_ble_note_ext_died(void);
+
+/* External init failed. This boot toasts on the internal panel.
+ * Magic, counter, and stage are cleared. NimBLE is not started. */
+void radio_ble_note_ext_failed(void);
 
 /* Clear the stage marker and disarm the watchdog. Call once the
  * panels and ui_init are up, before the splash wait. */
